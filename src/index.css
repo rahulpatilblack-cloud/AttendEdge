@@ -1,0 +1,357 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 214 100% 59%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 214 100% 59%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --font-family: 'Inter', sans-serif;
+    --font-size: 16px;
+    --sidebar-position: left;
+    --border-radius: 0.75rem;
+    --layout-density: cozy;
+    --custom-accent: 214 100% 59%;
+    --reduced-motion: false;
+    --notifications-toast: true;
+    --notifications-sound: false;
+    --notifications-email: true;
+    --language: en;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 214 100% 59%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 214 100% 59%;
+  }
+
+  :root.theme-vibrant-blue {
+    --background: 210 100% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 100% 92%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 200 100% 85%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --card: 210 100% 98%;
+    --card-foreground: 222.2 84% 4.9%;
+  }
+  :root.theme-vibrant-green {
+    --background: 138 76% 98%;
+    --foreground: 142 71% 15%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 138 76% 98%;
+    --secondary: 142 71% 85%;
+    --secondary-foreground: 142 71% 15%;
+    --accent: 142 71% 75%;
+    --accent-foreground: 142 71% 15%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 138 76% 98%;
+    --card: 138 76% 98%;
+    --card-foreground: 142 71% 15%;
+  }
+  :root.theme-vibrant-purple {
+    --background: 270 100% 98%;
+    --foreground: 271 91% 20%;
+    --primary: 271 91% 65%;
+    --primary-foreground: 270 100% 98%;
+    --secondary: 271 91% 90%;
+    --secondary-foreground: 271 91% 20%;
+    --accent: 271 91% 80%;
+    --accent-foreground: 271 91% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 270 100% 98%;
+    --card: 270 100% 98%;
+    --card-foreground: 271 91% 20%;
+  }
+  :root.theme-vibrant-orange {
+    --background: 24 100% 98%;
+    --foreground: 24 100% 20%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 24 100% 98%;
+    --secondary: 24 100% 90%;
+    --secondary-foreground: 24 100% 20%;
+    --accent: 24 100% 80%;
+    --accent-foreground: 24 100% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 24 100% 98%;
+    --card: 24 100% 98%;
+    --card-foreground: 24 100% 20%;
+  }
+  :root.theme-vibrant-pink {
+    --background: 340 100% 98%;
+    --foreground: 340 80% 20%;
+    --primary: 340 82% 60%;
+    --primary-foreground: 340 100% 98%;
+    --secondary: 340 100% 92%;
+    --secondary-foreground: 340 80% 20%;
+    --accent: 340 100% 85%;
+    --accent-foreground: 340 80% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 340 100% 98%;
+    --card: 340 100% 98%;
+    --card-foreground: 340 80% 20%;
+  }
+  :root.theme-vibrant-teal {
+    --background: 168 100% 98%;
+    --foreground: 168 80% 20%;
+    --primary: 168 76% 45%;
+    --primary-foreground: 168 100% 98%;
+    --secondary: 168 100% 92%;
+    --secondary-foreground: 168 80% 20%;
+    --accent: 168 100% 85%;
+    --accent-foreground: 168 80% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 168 100% 98%;
+    --card: 168 100% 98%;
+    --card-foreground: 168 80% 20%;
+  }
+  :root.theme-vibrant-yellow {
+    --background: 48 100% 98%;
+    --foreground: 48 80% 20%;
+    --primary: 48 100% 50%;
+    --primary-foreground: 48 100% 98%;
+    --secondary: 48 100% 92%;
+    --secondary-foreground: 48 80% 20%;
+    --accent: 48 100% 85%;
+    --accent-foreground: 48 80% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 48 100% 98%;
+    --card: 48 100% 98%;
+    --card-foreground: 48 80% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body, #root, .app-root {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    background: #fff !important;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  }
+  
+  .gradient-secondary {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Layout Density Utilities */
+  .density-compact {
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 0.75rem;
+    --spacing-lg: 1rem;
+    --spacing-xl: 1.5rem;
+  }
+
+  .density-cozy {
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 0.75rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+  }
+
+  .density-spacious {
+    --spacing-xs: 0.75rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+  }
+
+  /* Reduced Motion Utilities */
+  .reduced-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reduced-motion *::before,
+  .reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Professional Compact Spacing */
+  .compact-spacing {
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 0.75rem;
+    --spacing-lg: 1rem;
+    --spacing-xl: 1.25rem;
+  }
+
+  /* Professional Card Styling */
+  .card-compact {
+    @apply border-0 shadow-md rounded-lg;
+  }
+
+  .card-compact .card-header {
+    @apply pb-2;
+  }
+
+  .card-compact .card-content {
+    @apply p-3;
+  }
+
+  /* Professional Button Spacing */
+  .btn-group-compact {
+    @apply gap-2;
+  }
+
+  /* Professional Form Spacing */
+  .form-compact {
+    @apply space-y-3;
+  }
+
+  .form-compact .form-group {
+    @apply mb-3;
+  }
+
+  /* Professional Table Styling */
+  .table-compact {
+    @apply text-sm;
+  }
+
+  .table-compact th,
+  .table-compact td {
+    @apply px-3 py-2;
+  }
+
+  /* Professional Navigation Spacing */
+  .nav-compact {
+    @apply space-y-1;
+  }
+
+  .nav-compact .nav-item {
+    @apply px-2 py-1.5;
+  }
+
+  /* Card/Palette Theme Classes */
+  .theme-vibrant-blue {
+    --card-bg: #e3f0ff;
+    --card-text: #0a2540;
+  }
+  .theme-dark {
+    --card-bg: #23272f;
+    --card-text: #f5f6fa;
+  }
+  .theme-light {
+    --card-bg: #fff;
+    --card-text: #222;
+  }
+  .card-theme {
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10), 0 1.5px 6px 0 rgba(0,0,0,0.08);
+  }
+
+  .bg-background {
+    background-color: hsl(var(--background), #fff) !important;
+  }
+  .text-foreground {
+    color: hsl(var(--foreground), #222) !important;
+  }
+
+  /* Sidebar and Header Theme Classes */
+  .sidebar-theme {
+    background: var(--card-bg, #fff);
+    color: var(--card-text, #222);
+  }
+  .header-theme {
+    background: var(--card-bg, #fff);
+    color: var(--card-text, #222);
+  }
+
+  .bg-primary {
+    background-color: var(--primary, hsl(214,100%,59%)) !important;
+  }
+  .text-primary {
+    color: var(--primary, hsl(214,100%,59%)) !important;
+  }
+  .border-primary {
+    border-color: var(--primary, hsl(214,100%,59%)) !important;
+  }
+  .text-primary-foreground {
+    color: var(--primary-foreground, #fff) !important;
+  }
+  .bg-primary-foreground {
+    background-color: var(--primary-foreground, #fff) !important;
+  }
+}
