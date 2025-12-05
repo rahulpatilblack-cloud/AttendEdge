@@ -133,11 +133,7 @@ const Index = () => {
       case 'project-holidays':
         return <ProjectHolidaysManagement />;
       case 'project-reports':
-        return (
-          <ErrorBoundary>
-            <ReportsAnalytics />
-          </ErrorBoundary>
-        );
+        return <ProjectLeaveManagement />;
       case 'project-team-management':
         return <ProjectTeamManagement />;
         

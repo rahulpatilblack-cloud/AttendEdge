@@ -111,17 +111,31 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
   }, [currentCompany]);
 
   const onSubmit = async (data: EditEmployeeForm) => {
-    if (!currentCompany) {
-      toast({
-        title: "Error",
-        description: "Company information not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
+      // Check if user has permission to update this employee
+      if (user?.role !== 'super_admin' && 
+          user?.role !== 'admin' && 
+          user?.id !== employee.id) {
+        toast({
+          title: "Error",
+          description: "You don't have permission to edit this employee",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!currentCompany) {
+        toast({
+          title: "Error",
+          description: "Company information not available",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Check if user can edit this employee
       if (!user || !['admin', 'super_admin'].includes(user.role)) {
         toast({
@@ -129,6 +143,7 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
           description: "You don't have permission to edit employees",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -139,6 +154,7 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
           description: "Admins cannot edit Super Admin accounts",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -149,6 +165,7 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
           description: "Admins cannot promote users to Admin role",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -159,38 +176,43 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
           description: "Admins cannot promote users to Super Admin role",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
       console.log('Updating employee:', employee.id, data);
-      
+    
+      // Prepare the update object for the employees table
       const updateObj: any = {
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          department: data.department || null,
-          position: data.position || null,
-          team_id: data.team_id === 'no_team' ? null : data.team_id || null,
-          reporting_manager_id: data.reporting_manager_id === 'no_manager' ? null : data.reporting_manager_id || null,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        department: data.department || null,
+        position: data.position || null,
+        team_id: data.team_id === 'no_team' ? null : data.team_id || null,
+        reporting_manager_id: data.reporting_manager_id === 'no_manager' ? null : data.reporting_manager_id || null,
+        updated_at: new Date().toISOString()
       };
+      
+      // Only allow admins to update these sensitive fields
       if (user && ['admin', 'super_admin'].includes(user.role)) {
         updateObj.hire_date = data.hire_date || null;
         updateObj.is_active = data.is_active;
       }
 
-      const { error } = await supabase
+      // Update only the employees table
+      const { error: updateError } = await supabase
         .from('employees')
         .update(updateObj)
         .eq('id', employee.id);
 
-      if (error) {
-        console.error('Error updating employee:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update employee",
-          variant: "destructive",
-        });
-        return;
+      if (updateError) {
+        console.error('Error updating employee:', updateError);
+        // Check if this is a permission denied error
+        if (updateError.message.includes('permission denied for table users')) {
+          throw new Error('Failed to update employee: Insufficient permissions. Please check your database permissions.');
+        }
+        throw new Error(updateError.message || 'Failed to update employee');
       }
 
       toast({
@@ -201,9 +223,13 @@ const EditEmployeeForm: React.FC<EditEmployeeFormProps> = ({ employee, onSuccess
       onSuccess();
     } catch (error) {
       console.error('Error updating employee:', error);
+      const errorMessage = error instanceof Error ? 
+        error.message : 
+        'Failed to update employee. Please try again.';
+      
       toast({
         title: "Error",
-        description: "Failed to update employee",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

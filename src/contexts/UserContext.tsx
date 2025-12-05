@@ -51,15 +51,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Search users by name or email
-  const searchUsers = (query: string): User[] => {
-    if (!query) return [];
+  const filterUsers = (users: any[], query: string) => {
+    if (!query) return users;
     const lowerQuery = query.toLowerCase();
     return users.filter(
       user =>
-        user.first_name?.toLowerCase().includes(lowerQuery) ||
-        user.last_name?.toLowerCase().includes(lowerQuery) ||
+        user.name?.toLowerCase().includes(lowerQuery) ||
         user.email?.toLowerCase().includes(lowerQuery)
     );
+  };
+
+  const searchUsers = (query: string): User[] => {
+    return filterUsers(users, query);
   };
 
   // Initial data fetch

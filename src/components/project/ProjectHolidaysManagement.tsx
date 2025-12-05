@@ -180,7 +180,7 @@ const ProjectHolidaysManagement: React.FC = () => {
                     <option value="">Select consultant</option>
                     {(activeProject as any).members.map((m: any) => (
                       <option key={m.user_id} value={m.user_id}>
-                        {m.first_name} {m.last_name} ({m.email})
+                        {m.name || m.email}
                       </option>
                     ))}
                   </select>

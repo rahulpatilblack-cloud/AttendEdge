@@ -107,16 +107,24 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       roles: ['reporting_manager', 'admin', 'super_admin'],
       requiresPermission: true
     },
-    
-    // Human Resource section items are now handled in the HR collapsible menu
-    
-    // Management features - for managers and above
     {
       id: 'leave-management',
       label: 'Manage Leave Requests',
       icon: ClipboardList,
       roles: ['reporting_manager', 'admin', 'super_admin'],
       requiresPermission: true
+    },
+    {
+      id: 'holidays',
+      label: 'Holidays',
+      icon: CalendarDays,
+      roles: ['employee', 'reporting_manager', 'admin', 'super_admin']
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: User,
+      roles: ['employee', 'reporting_manager', 'admin', 'super_admin']
     },
     {
       id: 'teams',

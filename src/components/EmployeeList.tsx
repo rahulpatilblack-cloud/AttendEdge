@@ -105,18 +105,18 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   }, [currentCompany, fetchEmployees, refreshTrigger]);
 
   const canRemoveEmployee = (employee: Employee) => {
-    if (!user || !['admin', 'super_admin'].includes(user.role)) return false;
+    if (!user) return false;
     if (employee.id === user.id) return false; // Can't remove self
     if (user.role === 'admin' && employee.role === 'super_admin') return false; // Admin can't remove super admin
-    if (employee.role === 'admin' && user.role === 'admin') return false; // Admin can't remove other admins
-    return true;
+    if (user.role === 'admin' && employee.role === 'admin') return false; // Admin can't remove other admins
+    return ['admin', 'super_admin'].includes(user.role); // Only admins and super admins can remove
   };
 
   const canEditEmployee = (employee: Employee) => {
-    if (!user || !['admin', 'super_admin'].includes(user.role)) return false;
-    if (employee.id === user.id) return false; // Can't edit self
+    if (!user) return false;
+    if (employee.id === user.id) return false; // Can't edit self (should have a separate profile edit)
     if (user.role === 'admin' && employee.role === 'super_admin') return false; // Admin can't edit super admin
-    return true;
+    return ['admin', 'super_admin'].includes(user.role); // Only admins and super admins can edit
   };
 
   const handleRemoveEmployee = async (employeeId: string, employeeName: string) => {
@@ -132,20 +132,30 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
     setRemovingId(employeeId);
     try {
-      // Mark employee as inactive instead of deleting
-      const { error } = await supabase
-        .from('employees')
-        .update({ is_active: false })
-        .eq('id', employeeId);
+      console.log('Attempting to delete employee:', employeeId);
+      // Use the API endpoint to handle both auth user deletion and employee deactivation
+      const response = await fetch(`/api/employees/${employeeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Ensure cookies are sent with the request
+      });
 
-      if (error) {
-        console.error('Error removing employee:', error);
-        toast({
-          title: "Error",
-          description: "Failed to remove employee",
-          variant: "destructive"
-        });
-        return;
+      console.log('Delete response status:', response.status);
+      
+      if (!response.ok) {
+        let errorMessage = 'Failed to delete employee';
+        try {
+          const errorData = await response.json();
+          console.error('Error details:', errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('Raw error response:', errorText);
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -159,7 +169,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
       console.error('Error removing employee:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An error occurred while removing the employee",
         variant: "destructive"
       });
     } finally {

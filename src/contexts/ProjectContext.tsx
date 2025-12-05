@@ -69,8 +69,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
           .map(cp => ({
             ...cp,
             user_id: cp.consultant_id,
-            first_name: cp.consultant?.first_name,
-            last_name: cp.consultant?.last_name,
+            name: cp.consultant?.name,
             email: cp.consultant?.email,
             role: cp.role,
             allocation_percentage: cp.allocation_percentage,
@@ -360,14 +359,50 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateLeaveRequest = async (id: string, updates: Partial<ProjectLeaveRequest>): Promise<void> => {
     try {
-      const { error } = await supabase
+      console.log('Starting update for leave request:', { id, updates });
+      
+      // First, check if the record exists
+      const { data: existingRequest, error: fetchError } = await supabase
         .from('project_leave_requests')
-        .update(updates)
+        .select('id, project_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching leave request:', {
+          code: fetchError.code,
+          message: fetchError.message
+        });
+        throw new Error(`Leave request not found: ${fetchError.message}`);
+      }
+
+      if (!existingRequest) {
+        throw new Error(`Leave request with id ${id} not found in database`);
+      }
+
+      // Perform the update without expecting a response
+      const { error: updateError } = await supabase
+        .from('project_leave_requests')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Supabase update error:', {
+          code: updateError.code,
+          message: updateError.message
+        });
+        throw new Error(`Update failed: ${updateError.message}`);
+      }
+
+      console.log('Leave request updated successfully');
     } catch (err) {
-      console.error(`Error updating leave request ${id}:`, err);
+      console.error(`Error updating leave request ${id}:`, {
+        error: err,
+        message: err instanceof Error ? err.message : 'Unknown error'
+      });
       setError('Failed to update leave request');
       throw err;
     }

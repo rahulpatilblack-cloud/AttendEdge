@@ -28,8 +28,7 @@ const ProjectTeamPage = () => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
     return (
-      member.employee?.first_name?.toLowerCase().includes(searchLower) ||
-      member.employee?.last_name?.toLowerCase().includes(searchLower) ||
+      member.employee?.name?.toLowerCase().includes(searchLower) ||
       member.employee?.email?.toLowerCase().includes(searchLower) ||
       member.role?.toLowerCase().includes(searchLower)
     );
@@ -153,14 +152,14 @@ const ProjectTeamPage = () => {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                           <span className="text-gray-600">
-                            {member.employee?.first_name?.[0]}{member.employee?.last_name?.[0]}
+                            {member.employee?.name?.[0] || member.employee?.email?.[0] || '?'}
                           </span>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {member.employee?.first_name} {member.employee?.last_name}
+                            {member.employee?.name || member.employee?.email || 'Unknown'}
                           </div>
-                          <div className="text-sm text-gray-500">{member.employee?.email}</div>
+                          <div className="text-sm text-gray-500">{member.employee?.email || 'No email'}</div>
                         </div>
                       </div>
                     </td>

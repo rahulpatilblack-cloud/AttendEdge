@@ -57,7 +57,7 @@ const ProjectLeaveList: React.FC<ProjectLeaveListProps> = ({ projectId }) => {
           <div className="flex justify-between items-start">
             <div>
               <div className="font-medium text-sm">
-                {lr.employee?.first_name} {lr.employee?.last_name}
+                {lr.employee?.name || 'Unknown'}
               </div>
               <div className="text-xs text-muted-foreground">
                 {lr.leave_type?.name} • {new Date(lr.start_date).toLocaleDateString()} - {new Date(lr.end_date).toLocaleDateString()} ({lr.total_days} days)

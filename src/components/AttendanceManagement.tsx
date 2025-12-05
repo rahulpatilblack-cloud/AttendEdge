@@ -239,13 +239,51 @@ const AttendanceManagement: React.FC = () => {
   const isCheckedIn = todayAttendance?.check_in_time && !todayAttendance?.check_out_time;
   const isCheckedOut = todayAttendance?.check_in_time && todayAttendance?.check_out_time;
 
-  const markAttendanceForEmployee = async (employeeId: string, status: 'present' | 'absent' | 'late' | 'half_day') => {
-    if (!currentCompany) return;
+  const markAttendanceForEmployee = async (employeeId: string, status: 'present' | 'absent' | 'late' | 'half_day' | 'holiday') => {
+    if (!currentCompany) {
+      console.error('No company selected');
+      toast({ 
+        title: 'Error', 
+        description: 'No company selected. Please select a company first.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // Input validation
+    if (!employeeId) {
+      console.error('No employee ID provided');
+      toast({ 
+        title: 'Error', 
+        description: 'No employee selected', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    if (!['present', 'absent', 'late', 'half_day', 'holiday'].includes(status)) {
+      console.error('Invalid status:', status);
+      toast({ 
+        title: 'Error', 
+        description: 'Invalid attendance status', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setMarking(employeeId + status);
+    
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
       const now = new Date().toISOString();
-      let updateObj: any = { 
+      
+      // Prepare update object with proper typing
+      const updateObj: {
+        status: string;
+        updated_at: string;
+        check_in_time?: string | null;
+        check_out_time?: string | null;
+      } = { 
         status,
         updated_at: now
       };
@@ -253,33 +291,89 @@ const AttendanceManagement: React.FC = () => {
       // Handle check-in/check-out times based on status
       if (status === 'present' || status === 'late' || status === 'half_day') {
         updateObj.check_in_time = now;
-        updateObj.check_out_time = null; // Will be set when they check out
+        updateObj.check_out_time = null;
       } else {
         updateObj.check_in_time = null;
         updateObj.check_out_time = null;
       }
       
-      const { error } = await supabase
+      // First, check if a record exists
+      const { data: existingRecord, error: fetchError } = await supabase
         .from('attendance')
-        .upsert({
-          employee_id: employeeId,
-          company_id: currentCompany.id,
-          date: dateStr,
-          ...updateObj,
-        }, {
-          onConflict: 'employee_id,date'
+        .select('id')
+        .eq('employee_id', employeeId)
+        .eq('date', dateStr)
+        .single();
+
+      // Handle fetch errors (except "no rows found" which is expected)
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      // Prepare the data to be saved
+      const attendanceData = {
+        employee_id: employeeId,
+        company_id: currentCompany.id,
+        date: dateStr,
+        ...updateObj,
+      };
+
+      let error;
+      if (existingRecord) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('attendance')
+          .update(attendanceData)
+          .eq('id', existingRecord.id);
+        error = updateError;
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('attendance')
+          .insert(attendanceData);
+        error = insertError;
+      }
+
+      if (error) {
+        console.error('Attendance operation error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
         });
         
-      if (error) {
-        console.error('Attendance upsert error:', error);
-        toast({ title: 'Error', description: 'Failed to mark attendance', variant: 'destructive' });
+        let errorMessage = 'Failed to mark attendance';
+        if (error.code === '23503') { // Foreign key violation
+          errorMessage = 'Employee not found';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast({ 
+          title: 'Error', 
+          description: errorMessage, 
+          variant: 'destructive' 
+        });
       } else {
-        toast({ title: 'Success', description: 'Attendance marked successfully' });
+        console.log('Attendance update successful');
+        toast({ 
+          title: 'Success', 
+          description: `Marked as ${status.charAt(0).toUpperCase() + status.slice(1)}` 
+        });
         setDateAttendanceMap((prev) => ({ ...prev, [employeeId]: status }));
       }
-    } catch (e) {
-      console.error('Attendance marking error:', e);
-      toast({ title: 'Error', description: 'Unexpected error occurred', variant: 'destructive' });
+    } catch (e: any) {
+      console.error('Unexpected error in markAttendanceForEmployee:', {
+        error: e,
+        message: e?.message,
+        stack: e?.stack
+      });
+      
+      toast({ 
+        title: 'Error', 
+        description: e?.message || 'An unexpected error occurred', 
+        variant: 'destructive' 
+      });
     } finally {
       setMarking(null);
     }

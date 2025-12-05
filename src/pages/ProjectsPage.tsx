@@ -237,7 +237,7 @@ const ProjectsPage = () => {
                             <div className="px-2 py-1 text-xs text-muted-foreground">No employees found</div>
                           )}
                           {employees.map((emp: any) => {
-                            const displayName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.email;
+                            const displayName = emp.name || emp.email;
                             return (
                               <SelectItem key={emp.id} value={emp.id}>
                                 {displayName}

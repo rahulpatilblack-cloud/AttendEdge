@@ -106,9 +106,18 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({ title: "Error", description: "You must be logged in to create employees", variant: "destructive" });
+        toast({ 
+          title: 'Authentication Error', 
+          description: 'You must be logged in to create employees', 
+          variant: 'destructive' 
+        });
         return;
       }
+
+      if (!currentCompany?.id) {
+        throw new Error('No company selected');
+      }
+
       const payload = {
         ...data,
         team_id: data.team_id === 'no_team' ? null : data.team_id || null,
@@ -118,27 +127,51 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
             : data.reporting_manager_id,
         hire_date: data.hire_date || null,
         is_active: data.is_active,
-        company_id: currentCompany?.id, // Always use current company
+        company_id: currentCompany.id,
       };
-      const { data: result, error } = await supabase.functions.invoke('create-employee', {
-        body: payload,
-        headers: { Authorization: `Bearer ${session.access_token}` },
+
+      // Use the Vite proxy to the server endpoint
+      const response = await fetch('/api/create-employee', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
-      if (error) {
-        toast({ title: "Error", description: error.message || "Failed to create employee", variant: "destructive" });
-        return;
+
+      // Handle non-2xx responses
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || 
+          errorData.error_description || 
+          `HTTP error! status: ${response.status}`
+        );
       }
+
+      const result = await response.json();
+
       if (result?.success) {
-        toast({ title: "Success", description: result.message || "Employee created successfully and welcome email sent" });
+        toast({ 
+          title: 'Success', 
+          description: result.message || 'Employee created successfully',
+          variant: 'default'
+        });
         form.reset();
         onSuccess();
       } else {
-        throw new Error(result?.error || 'Unknown error occurred');
+        throw new Error(result?.error || 'Failed to create employee');
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create employee", variant: "destructive" });
+      console.error('Error creating employee:', error);
+      toast({ 
+        title: 'Error', 
+        description: error.message || 'Failed to create employee. Please try again.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (

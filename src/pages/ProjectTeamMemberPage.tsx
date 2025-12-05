@@ -195,7 +195,7 @@ const ProjectTeamMemberPage = () => {
                       <SelectContent>
                         {availableEmployees.map((user) => (
                           <SelectItem key={user.id} value={user.id}>
-                            {user.first_name} {user.last_name} ({user.email})
+                            {user.name || user.email}
                           </SelectItem>
                         ))}
                         {availableEmployees.length === 0 && (

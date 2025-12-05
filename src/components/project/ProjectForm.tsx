@@ -138,7 +138,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
     const newConsultant: Consultant = {
       id: employeeId,
-      name: `${employee.first_name} ${employee.last_name}`.trim() || employee.email || 'Unknown',
+      name: employee.name || employee.email || 'Unknown',
       role: 'member',
       allocation_percentage: form.getValues('allocation_percentage') || 100,
       start_date: form.getValues('start_date') || new Date().toISOString().split('T')[0],
@@ -362,7 +362,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                     <div className="px-2 py-1 text-xs text-muted-foreground">No employees found for this company</div>
                   )}
                   {employees && employees.map((employee: any) => {
-                    const displayName = employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email;
+                    const displayName = employee.name || employee.email;
                     return (
                       <SelectItem key={employee.id} value={employee.id}>
                         {displayName}
