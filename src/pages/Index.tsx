@@ -22,6 +22,7 @@ import { SessionSettings } from '@/components/SessionSettings';
 import MyProjects from '@/components/project/MyProjects';
 import ProjectLeaveLanding from '@/components/project/ProjectLeaveLanding';
 import ProjectLeaveManagement from '@/components/project/ProjectLeaveManagement';
+import ProjectLeaveReports from '@/components/project/ProjectLeaveReports';
 import ProjectHolidaysManagement from '@/components/project/ProjectHolidaysManagement';
 import ProjectTeamManagement from '@/components/project/ProjectTeamManagement';
 import ProjectsPage from '@/pages/ProjectsPage';
@@ -133,7 +134,7 @@ const Index = () => {
       case 'project-holidays':
         return <ProjectHolidaysManagement />;
       case 'project-reports':
-        return <ProjectLeaveManagement />;
+        return <ProjectLeaveReports />;
       case 'project-team-management':
         return <ProjectTeamManagement />;
         
