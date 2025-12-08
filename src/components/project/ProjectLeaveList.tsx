@@ -28,7 +28,7 @@ const ProjectLeaveList: React.FC<ProjectLeaveListProps> = ({ projectId }) => {
     load();
   }, [projectId, fetchLeaveRequests]);
 
-  const canManage = user && ['reporting_manager', 'admin', 'super_admin'].includes(user.role);
+  const canManage = user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'reporting_manager');
 
   const handleStatusChange = async (id: string, status: 'approved' | 'rejected') => {
     if (!canManage) return;

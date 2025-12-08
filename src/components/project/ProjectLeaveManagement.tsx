@@ -17,7 +17,7 @@ const ProjectLeaveManagement: React.FC = () => {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const canManage =
-    user && ['reporting_manager', 'admin', 'super_admin'].includes(user.role);
+    user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'reporting_manager');
 
   const loadAll = async () => {
     setLoading(true);
