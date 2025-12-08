@@ -92,13 +92,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       id: 'attendance',
       label: 'Attendance',
       icon: Clock,
-      roles: ['employee', 'reporting_manager', 'admin', 'super_admin']
+      roles: ['reporting_manager', 'admin', 'super_admin']
     },
     {
       id: 'leave',
       label: 'Leave Requests',
       icon: Calendar,
-      roles: ['employee', 'reporting_manager', 'admin', 'super_admin']
+      roles: ['reporting_manager', 'admin', 'super_admin']
     },
     {
       id: 'manage-attendance',
@@ -401,7 +401,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                 );
               })}
 
-              {/* Human Resource retractable menu */}
+              {/* Human Resource retractable menu - Hidden for employees and consultants */}
+              {!['employee', 'consultant'].includes(user?.role || '') && (
               <div>
                 <button
                   className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)]"
@@ -480,6 +481,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                   </button>
                 </div>
               </div>
+              )}
 
               {/* Project Management retractable menu */}
               <div>

@@ -10,8 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 const ProjectHolidaysManagement: React.FC = () => {
-  const { projects, loading, error, fetchProjects, fetchHolidays, createHoliday, deleteHoliday } = useProjects();
+  const { projects, loading, error, fetchProjects, fetchHolidays: fetchProjectHolidays, createHoliday, deleteHoliday } = useProjects();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [listOpen, setListOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [holidays, setHolidays] = useState<any[]>([]);
@@ -26,8 +27,18 @@ const ProjectHolidaysManagement: React.FC = () => {
   }, [fetchProjects]);
 
   const visibleProjects = useMemo(() => {
-    return projects || [];
-  }, [projects]);
+    if (!projects) return [];
+    
+    // For employees and consultants, only show projects they are assigned to
+    if (user?.role === 'employee' || user?.role === 'consultant') {
+      return projects.filter(project => 
+        project.members?.some(member => member.user_id === user?.id)
+      );
+    }
+    
+    // For admins and managers, show all projects
+    return projects;
+  }, [projects, user]);
 
   const activeProject = useMemo(() => {
     return visibleProjects.find((p: any) => p.id === activeProjectId) || null;
@@ -38,8 +49,21 @@ const ProjectHolidaysManagement: React.FC = () => {
       if (!activeProjectId) return;
       setHolidaysLoading(true);
       try {
-        const data = await fetchHolidays(activeProjectId);
+        let data = await fetchProjectHolidays(activeProjectId);
+        
+        // For employees and consultants, filter holidays to show only their own
+        if (user?.role === 'employee' || user?.role === 'consultant') {
+          data = data.filter((holiday: any) => holiday.consultant_id === user?.id);
+        }
+        
         setHolidays(data || []);
+      } catch (err) {
+        console.error('Error loading holidays:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load holidays',
+          variant: 'destructive',
+        });
       } finally {
         setHolidaysLoading(false);
       }
@@ -48,7 +72,7 @@ const ProjectHolidaysManagement: React.FC = () => {
     if (listOpen && activeProjectId) {
       loadHolidays();
     }
-  }, [listOpen, activeProjectId, fetchHolidays]);
+  }, [listOpen, activeProjectId, fetchProjectHolidays, user]);
 
   const resetForm = () => {
     setFormData({ holiday_name: '', date: '', description: '' });
@@ -95,6 +119,7 @@ const ProjectHolidaysManagement: React.FC = () => {
       setSaving(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -152,7 +177,7 @@ const ProjectHolidaysManagement: React.FC = () => {
                         setListOpen(true);
                       }}
                     >
-                      Manage Holidays
+                      {isAdmin ? 'Manage Holidays' : 'View Holidays'}
                     </Button>
                   </div>
                 </div>
@@ -170,24 +195,28 @@ const ProjectHolidaysManagement: React.FC = () => {
           <div className="space-y-4">
             {activeProject && (
               <div className="space-y-1 text-sm">
-                <div className="font-medium">Consultant</div>
-                {Array.isArray((activeProject as any).members) && (activeProject as any).members.length > 0 ? (
-                  <select
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={selectedConsultantId}
-                    onChange={(e) => setSelectedConsultantId(e.target.value)}
-                  >
-                    <option value="">Select consultant</option>
-                    {(activeProject as any).members.map((m: any) => (
-                      <option key={m.user_id} value={m.user_id}>
-                        {m.name || m.email}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="text-xs text-muted-foreground">
-                    No consultants are assigned to this project. Assign consultants in Project Team Management first.
-                  </div>
+                {isAdmin && (
+                  <>
+                    <div className="font-medium">Consultant</div>
+                    {Array.isArray((activeProject as any).members) && (activeProject as any).members.length > 0 ? (
+                      <select
+                        className="w-full border rounded px-2 py-1 text-sm"
+                        value={selectedConsultantId}
+                        onChange={(e) => setSelectedConsultantId(e.target.value)}
+                      >
+                        <option value="">Select consultant</option>
+                        {(activeProject as any).members.map((m: any) => (
+                          <option key={m.user_id} value={m.user_id}>
+                            {m.name || m.email}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">
+                        No consultants are assigned to this project. Assign consultants in Project Team Management first.
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -209,44 +238,48 @@ const ProjectHolidaysManagement: React.FC = () => {
                         <div className="text-xs text-muted-foreground mt-1">{h.description}</div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-600 hover:text-red-700"
-                      onClick={() => handleDeleteHoliday(h.id)}
-                      disabled={saving}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteHoliday(h.id)}
+                        disabled={saving}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            <form onSubmit={handleAddHoliday} className="space-y-2 border-t pt-3">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Holiday name"
-                  value={formData.holiday_name}
-                  onChange={(e) => setFormData({ ...formData, holiday_name: e.target.value })}
+            {isAdmin && (
+              <form onSubmit={handleAddHoliday} className="space-y-2 border-t pt-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Holiday name"
+                    value={formData.holiday_name}
+                    onChange={(e) => setFormData({ ...formData, holiday_name: e.target.value })}
+                  />
+                  <Input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  />
+                </div>
+                <Textarea
+                  placeholder="Description (optional)"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                />
-              </div>
-              <Textarea
-                placeholder="Description (optional)"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-              <div className="flex justify-end">
-                <Button type="submit" size="sm" disabled={saving || !formData.holiday_name || !formData.date}>
-                  {saving ? 'Saving...' : 'Add Holiday'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end">
+                  <Button type="submit" size="sm" disabled={saving || !formData.holiday_name || !formData.date}>
+                    {saving ? 'Saving...' : 'Add Holiday'}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </DialogContent>
       </Dialog>
