@@ -131,36 +131,38 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
     }
 
     setRemovingId(employeeId);
+    
     try {
       console.log('Attempting to delete employee:', employeeId);
-      // Use the API endpoint to handle both auth user deletion and employee deactivation
+      
       const response = await fetch(`/api/employees/${employeeId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include' // Ensure cookies are sent with the request
+        credentials: 'include'
       });
 
-      console.log('Delete response status:', response.status);
+      let errorMessage = 'Failed to delete employee';
+      let responseData;
+      
+      try {
+        // Only try to parse as JSON if there's content
+        const responseText = await response.text();
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        throw new Error('Invalid response from server');
+      }
       
       if (!response.ok) {
-        let errorMessage = 'Failed to delete employee';
-        try {
-          const errorData = await response.json();
-          console.error('Error details:', errorData);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          const errorText = await response.text();
-          console.error('Raw error response:', errorText);
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
+        console.error('Error response:', response.status, response.statusText, responseData);
+        throw new Error(responseData.error || `Server responded with status ${response.status}`);
       }
 
       toast({
         title: "Success",
-        description: `${employeeName} has been removed successfully`,
+        description: responseData.message || `${employeeName} has been removed successfully`,
       });
 
       // Refresh the list

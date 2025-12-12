@@ -569,7 +569,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         }`}
                       >
                         <Users className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Team Management</span>
+                        <span className="sidebar-label text-sm">Consultant Management</span>
                       </button>
                     </>
                   )}

@@ -119,33 +119,31 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
       }
 
       const payload = {
-        ...data,
-        team_id: data.team_id === 'no_team' ? null : data.team_id || null,
-        reporting_manager_id:
-          data.reporting_manager_id === 'no_manager' || !data.reporting_manager_id
-            ? DEFAULT_MANAGER_ID
-            : data.reporting_manager_id,
-        hire_date: data.hire_date || null,
-        is_active: data.is_active,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        department: data.department || '',
+        position: data.position || '',
         company_id: currentCompany.id,
       };
 
-      // Use the Vite proxy to the server endpoint
-      const response = await fetch('/api/create-employee', {
+      const response = await fetch('/api/employees', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
-      // Handle non-2xx responses
+      const responseData = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', response.status, response.statusText, responseData);
         throw new Error(
-          errorData.message || 
-          errorData.error_description || 
-          `HTTP error! status: ${response.status}`
+          responseData.error || 
+          responseData.message ||
+          `Failed to create employee: ${response.statusText}`
         );
       }
 
