@@ -6,6 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
+
+/**
+ * Safely parse YYYY-MM-DD dates without timezone shifts
+ */
+const parseLocalDate = (dateStr?: string) => {
+  if (!dateStr) return null;
+
+  const clean = dateStr.split('T')[0]; // handle timestamps defensively
+  const [year, month, day] = clean.split('-').map(Number);
+
+  if (!year || !month || !day) return null;
+
+  return new Date(year, month - 1, day);
+};
 
 const ProjectLeaveManagement: React.FC = () => {
   const { updateLeaveRequest } = useProjects();
@@ -17,7 +32,10 @@ const ProjectLeaveManagement: React.FC = () => {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const canManage =
-    user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'reporting_manager');
+    user &&
+    (user.role === 'admin' ||
+      user.role === 'super_admin' ||
+      user.role === 'reporting_manager');
 
   const loadAll = async () => {
     setLoading(true);
@@ -113,21 +131,13 @@ const ProjectLeaveManagement: React.FC = () => {
       }
     }
 
-    setItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, status: newStatus } : item
-      )
-    );
-
     try {
-      const updateData = {
+      await updateLeaveRequest(id, {
         status: newStatus,
         approved_by: user?.id || null,
         approved_at: new Date().toISOString(),
         rejection_reason: rejectionReason,
-      };
-
-      await updateLeaveRequest(id, updateData);
+      });
 
       toast({
         title: 'Success',
@@ -142,20 +152,17 @@ const ProjectLeaveManagement: React.FC = () => {
         description: 'Failed to update leave request.',
         variant: 'destructive',
       });
-
-      await loadAll();
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  const statusBadgeVariant = (status: string) => {
-    return {
+  const statusBadgeVariant = (status: string) =>
+    ({
       approved: 'default',
       rejected: 'destructive',
       pending: 'secondary',
-    }[status] || 'outline';
-  };
+    }[status] || 'outline');
 
   return (
     <div className="p-6 space-y-6">
@@ -169,7 +176,9 @@ const ProjectLeaveManagement: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All Project Leave Requests</CardTitle>
+          <CardTitle className="text-base">
+            All Project Leave Requests
+          </CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -179,51 +188,68 @@ const ProjectLeaveManagement: React.FC = () => {
             <p className="text-sm text-muted-foreground">No records found.</p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {items.map(lr => (
-                <div key={lr.id} className="border p-3 rounded space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-sm">
-                        {lr.employee?.name || lr.employee?.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {lr.project?.name} • {lr.leave_type?.name}
-                      </p>
-                      <p className="text-xs">
-                        {new Date(lr.start_date).toLocaleDateString()} →{' '}
-                        {new Date(lr.end_date).toLocaleDateString()} ({lr.total_days} days)
-                      </p>
+              {items.map(lr => {
+                const start = parseLocalDate(lr.start_date);
+                const end = parseLocalDate(lr.end_date);
 
-                      {lr.reason && (
-                        <p className="text-xs text-muted-foreground">{lr.reason}</p>
-                      )}
+                return (
+                  <div key={lr.id} className="border p-3 rounded space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-sm">
+                          {lr.employee?.name || lr.employee?.email}
+                        </p>
+
+                        <p className="text-xs text-muted-foreground">
+                          {lr.project?.name} • {lr.leave_type?.name}
+                        </p>
+
+                        <p className="text-xs">
+                          {start ? format(start, 'PPP') : '-'} →{' '}
+                          {end ? format(end, 'PPP') : '-'} ({lr.total_days} days)
+                        </p>
+
+                        {lr.reason && (
+                          <p className="text-xs text-muted-foreground">
+                            {lr.reason}
+                          </p>
+                        )}
+                      </div>
+
+                      <Badge variant={statusBadgeVariant(lr.status)}>
+                        {lr.status}
+                      </Badge>
                     </div>
 
-                    <Badge variant={statusBadgeVariant(lr.status)}>{lr.status}</Badge>
+                    {canManage && lr.status === 'pending' && (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="xs"
+                          disabled={actionLoadingId === lr.id}
+                          onClick={() =>
+                            handleStatusChange(lr.id, 'approved')
+                          }
+                        >
+                          {actionLoadingId === lr.id
+                            ? 'Processing...'
+                            : 'Approve'}
+                        </Button>
+
+                        <Button
+                          size="xs"
+                          variant="destructive"
+                          disabled={actionLoadingId === lr.id}
+                          onClick={() =>
+                            handleStatusChange(lr.id, 'rejected')
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
                   </div>
-
-                  {canManage && lr.status === 'pending' && (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="xs"
-                        disabled={actionLoadingId === lr.id}
-                        onClick={() => handleStatusChange(lr.id, 'approved')}
-                      >
-                        {actionLoadingId === lr.id ? 'Processing...' : 'Approve'}
-                      </Button>
-
-                      <Button
-                        size="xs"
-                        variant="destructive"
-                        disabled={actionLoadingId === lr.id}
-                        onClick={() => handleStatusChange(lr.id, 'rejected')}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

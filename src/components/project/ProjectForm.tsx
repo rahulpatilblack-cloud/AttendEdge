@@ -99,14 +99,36 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
   const { currentCompany } = useCompany();
   const [selectedConsultants, setSelectedConsultants] = useState<Consultant[]>([]);
   
+  // Helper function to convert date to YYYY-MM-DD format in local time
+  const toLocalDateString = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0'),
+    ].join('-');
+  };
+
+  // Safely create Date from YYYY-MM-DD
+  const createLocalDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    return new Date(dateStr.split('T')[0]);
+  };
+
   // Initialize form with default values
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: project.name || '',
       description: project.description || '',
-      start_date: project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      end_date: project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '',
+      start_date: project.start_date ? toLocalDateString(project.start_date) : toLocalDateString(new Date()),
+      end_date: project.end_date ? toLocalDateString(project.end_date) : '',
       status: (project.status as any) || 'active',
       client_name: project.client_name || '',
       allocation_percentage: 100,
@@ -156,11 +178,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
   // Handle form submission
   const handleFormSubmit = (data: ProjectFormValues) => {
+    // Use the date strings directly as they're already in YYYY-MM-DD format
     const projectData = {
       name: data.name,
       description: data.description,
-      start_date: new Date(data.start_date).toISOString(),
-      end_date: data.end_date ? new Date(data.end_date).toISOString() : null,
+      start_date: data.start_date,
+      end_date: data.end_date || null,
       status: data.status,
       client_name: data.client_name,
       allocation_percentage: data.allocation_percentage,
@@ -168,8 +191,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
         consultant_id: consultant.id,
         role: consultant.role,
         allocation_percentage: consultant.allocation_percentage,
-        start_date: new Date(consultant.start_date).toISOString(),
-        end_date: consultant.end_date ? new Date(consultant.end_date).toISOString() : null,
+        start_date: consultant.start_date,
+        end_date: consultant.end_date || null,
         is_active: true,
       })),
     };
@@ -226,7 +249,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                         )}
                       >
                         {field.value ? (
-                          format(new Date(field.value), 'PPP')
+                          (() => {
+                            const [y, m, d] = field.value.split('-');
+                            return format(
+                              new Date(Number(y), Number(m) - 1, Number(d)),
+                              'PPP'
+                            );
+                          })()
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -237,10 +266,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) =>
-                        field.onChange(date?.toISOString().split('T')[0])
-                      }
+                      selected={field.value ? createLocalDate(field.value) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          field.onChange(toLocalDateString(date));
+                        }
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -267,7 +298,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                         )}
                       >
                         {field.value ? (
-                          format(new Date(field.value), 'PPP')
+                          (() => {
+                            const [y, m, d] = field.value.split('-');
+                            return format(
+                              new Date(Number(y), Number(m) - 1, Number(d)),
+                              'PPP'
+                            );
+                          })()
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -278,10 +315,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) =>
-                        field.onChange(date?.toISOString().split('T')[0])
-                      }
+                      selected={field.value ? createLocalDate(field.value) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          field.onChange(toLocalDateString(date));
+                        }
+                      }}
                       initialFocus
                     />
                   </PopoverContent>

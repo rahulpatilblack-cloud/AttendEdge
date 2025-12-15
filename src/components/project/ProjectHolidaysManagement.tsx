@@ -8,17 +8,45 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+/**
+ * Parse YYYY-MM-DD safely without timezone shift
+ */
+const parseLocalDate = (dateStr?: string) => {
+  if (!dateStr) return null;
+  const clean = dateStr.split('T')[0];
+  const [y, m, d] = clean.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
 
 const ProjectHolidaysManagement: React.FC = () => {
-  const { projects, loading, error, fetchProjects, fetchHolidays: fetchProjectHolidays, createHoliday, deleteHoliday } = useProjects();
+  const {
+    projects,
+    loading,
+    error,
+    fetchProjects,
+    fetchHolidays: fetchProjectHolidays,
+    createHoliday,
+    deleteHoliday,
+  } = useProjects();
+
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
   const [listOpen, setListOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [holidaysLoading, setHolidaysLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ holiday_name: '', date: '', description: '' });
+
+  const [formData, setFormData] = useState({
+    holiday_name: '',
+    date: '',
+    description: '',
+  });
+
   const [selectedConsultantId, setSelectedConsultantId] = useState<string>('');
   const { toast } = useToast();
 
@@ -28,15 +56,13 @@ const ProjectHolidaysManagement: React.FC = () => {
 
   const visibleProjects = useMemo(() => {
     if (!projects) return [];
-    
-    // For employees and consultants, only show projects they are assigned to
+
     if (user?.role === 'employee' || user?.role === 'consultant') {
-      return projects.filter(project => 
-        project.members?.some(member => member.user_id === user?.id)
+      return projects.filter(project =>
+        project.members?.some(member => member.user_id === user?.id),
       );
     }
-    
-    // For admins and managers, show all projects
+
     return projects;
   }, [projects, user]);
 
@@ -47,18 +73,18 @@ const ProjectHolidaysManagement: React.FC = () => {
   useEffect(() => {
     const loadHolidays = async () => {
       if (!activeProjectId) return;
+
       setHolidaysLoading(true);
       try {
         let data = await fetchProjectHolidays(activeProjectId);
-        
-        // For employees and consultants, filter holidays to show only their own
+
         if (user?.role === 'employee' || user?.role === 'consultant') {
-          data = data.filter((holiday: any) => holiday.consultant_id === user?.id);
+          data = data.filter((h: any) => h.consultant_id === user?.id);
         }
-        
+
         setHolidays(data || []);
       } catch (err) {
-        console.error('Error loading holidays:', err);
+        console.error(err);
         toast({
           title: 'Error',
           description: 'Failed to load holidays',
@@ -93,11 +119,11 @@ const ProjectHolidaysManagement: React.FC = () => {
       } as any);
 
       toast({ title: 'Holiday added', description: 'Project holiday has been created.' });
-      const data = await fetchHolidays(activeProjectId);
+
+      const data = await fetchProjectHolidays(activeProjectId);
       setHolidays(data || []);
       resetForm();
     } catch (err) {
-      console.error('Error adding holiday', err);
       toast({ title: 'Error', description: 'Failed to add holiday', variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -106,27 +132,25 @@ const ProjectHolidaysManagement: React.FC = () => {
 
   const handleDeleteHoliday = async (id: string) => {
     if (!activeProjectId) return;
+
     setSaving(true);
     try {
       await deleteHoliday(id);
       toast({ title: 'Holiday deleted', description: 'Project holiday has been removed.' });
-      const data = await fetchHolidays(activeProjectId);
+
+      const data = await fetchProjectHolidays(activeProjectId);
       setHolidays(data || []);
     } catch (err) {
-      console.error('Error deleting holiday', err);
       toast({ title: 'Error', description: 'Failed to delete holiday', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
-
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -134,9 +158,8 @@ const ProjectHolidaysManagement: React.FC = () => {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <strong>Error: </strong>{error}
         </div>
       </div>
     );
@@ -144,46 +167,46 @@ const ProjectHolidaysManagement: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Project Holidays</h1>
-      </div>
+      <h1 className="text-2xl font-bold">Project Holidays</h1>
 
       {visibleProjects.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-gray-600">
-            <Calendar className="h-6 w-6 text-blue-600 mx-auto mb-3" />
+            <Calendar className="h-6 w-6 mx-auto mb-2" />
             No projects found.
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {visibleProjects.map((project: any) => (
-            <Card key={project.id} className="border">
-              <CardHeader>
-                <CardTitle className="text-base">{project.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
+          {visibleProjects.map((project: any) => {
+            const start = parseLocalDate(project.start_date);
+            const end = parseLocalDate(project.end_date);
+
+            return (
+              <Card key={project.id}>
+                <CardHeader>
+                  <CardTitle className="text-base">{project.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-between items-center">
                   <div className="text-sm text-gray-600 flex items-center">
                     <Clock className="h-4 w-4 mr-1" />
-                    {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
+                    {start ? format(start, 'PPP') : '-'} –{' '}
+                    {end ? format(end, 'PPP') : 'Ongoing'}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setActiveProjectId(project.id);
-                        setListOpen(true);
-                      }}
-                    >
-                      {isAdmin ? 'Manage Holidays' : 'View Holidays'}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setActiveProjectId(project.id);
+                      setListOpen(true);
+                    }}
+                  >
+                    {isAdmin ? 'Manage Holidays' : 'View Holidays'}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -192,95 +215,71 @@ const ProjectHolidaysManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Manage Project Holidays</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {activeProject && (
-              <div className="space-y-1 text-sm">
-                {isAdmin && (
-                  <>
-                    <div className="font-medium">Consultant</div>
-                    {Array.isArray((activeProject as any).members) && (activeProject as any).members.length > 0 ? (
-                      <select
-                        className="w-full border rounded px-2 py-1 text-sm"
-                        value={selectedConsultantId}
-                        onChange={(e) => setSelectedConsultantId(e.target.value)}
-                      >
-                        <option value="">Select consultant</option>
-                        {(activeProject as any).members.map((m: any) => (
-                          <option key={m.user_id} value={m.user_id}>
-                            {m.name || m.email}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">
-                        No consultants are assigned to this project. Assign consultants in Project Team Management first.
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
 
-            {holidaysLoading ? (
-              <div className="py-2 text-sm text-muted-foreground">Loading holidays...</div>
-            ) : holidays.length === 0 ? (
-              <div className="py-2 text-sm text-muted-foreground">No holidays defined for this project.</div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {holidays.map((h: any) => (
-                  <div key={h.id} className="flex justify-between items-start p-3 border rounded-md">
+          {holidaysLoading ? (
+            <div className="text-sm text-muted-foreground">Loading holidays...</div>
+          ) : holidays.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No holidays defined.</div>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {holidays.map(h => {
+                const date = parseLocalDate(h.date);
+                return (
+                  <div key={h.id} className="flex justify-between p-3 border rounded-md">
                     <div>
-                      <div className="font-medium text-sm">{h.holiday_name || 'Holiday'}</div>
+                      <div className="font-medium text-sm">{h.holiday_name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(h.date).toLocaleDateString()}
+                        {date ? format(date, 'PPP') : '-'}
                       </div>
                       {h.description && (
-                        <div className="text-xs text-muted-foreground mt-1">{h.description}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {h.description}
+                        </div>
                       )}
                     </div>
                     {isAdmin && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteHoliday(h.id)}
                         disabled={saving}
+                        className="text-red-600"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
 
-            {isAdmin && (
-              <form onSubmit={handleAddHoliday} className="space-y-2 border-t pt-3">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Holiday name"
-                    value={formData.holiday_name}
-                    onChange={(e) => setFormData({ ...formData, holiday_name: e.target.value })}
-                  />
-                  <Input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  />
-                </div>
-                <Textarea
-                  placeholder="Description (optional)"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          {isAdmin && (
+            <form onSubmit={handleAddHoliday} className="space-y-2 border-t pt-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Holiday name"
+                  value={formData.holiday_name}
+                  onChange={e => setFormData({ ...formData, holiday_name: e.target.value })}
                 />
-                <div className="flex justify-end">
-                  <Button type="submit" size="sm" disabled={saving || !formData.holiday_name || !formData.date}>
-                    {saving ? 'Saving...' : 'Add Holiday'}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                />
+              </div>
+              <Textarea
+                placeholder="Description (optional)"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={saving}>
+                  {saving ? 'Saving…' : 'Add Holiday'}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

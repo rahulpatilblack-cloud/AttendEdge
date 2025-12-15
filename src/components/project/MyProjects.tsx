@@ -6,6 +6,15 @@ import { Calendar, Clock, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ProjectLeaveForm from '@/components/project/ProjectLeaveForm';
+import { format } from 'date-fns';
+
+const parseLocalDate = (dateStr?: string) => {
+  if (!dateStr) return null;
+  const clean = dateStr.split('T')[0];
+  const [y, m, d] = clean.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
 
 const MyProjects = () => {
   const { projects, loading, error, fetchProjects, fetchHolidays } = useProjects();
@@ -35,8 +44,7 @@ const MyProjects = () => {
     loadHolidays();
   }, [activeProjectId, holidaysOpen, fetchHolidays]);
 
-  // Filter projects where current user is a team member (ProjectContext maps consultant_id -> user_id)
-  const myProjects = projects.filter(project => 
+  const myProjects = projects.filter(project =>
     project.members?.some((member: any) => member.user_id === user?.id)
   );
 
@@ -48,7 +56,7 @@ const MyProjects = () => {
           <Skeleton className="h-10 w-32" />
         </div>
         <div className="grid gap-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="border rounded-lg p-4">
               <Skeleton className="h-6 w-48 mb-2" />
               <Skeleton className="h-4 w-64 mb-4" />
@@ -66,9 +74,8 @@ const MyProjects = () => {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <strong>Error: </strong>{error}
         </div>
       </div>
     );
@@ -79,11 +86,11 @@ const MyProjects = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">My Projects</h1>
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search my projects..."
-            className="pl-10 pr-4 py-2 border rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="pl-10 pr-4 py-2 border rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -93,38 +100,50 @@ const MyProjects = () => {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <Calendar className="h-6 w-6 text-blue-600" />
           </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No projects assigned</h3>
-          <p className="mt-2 text-sm text-gray-600">You haven't been assigned to any projects yet.</p>
+          <h3 className="mt-4 text-lg font-medium">No projects assigned</h3>
+          <p className="mt-2 text-sm text-gray-600">
+            You haven't been assigned to any projects yet.
+          </p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {myProjects.map((project) => {
-            const myRole = project.members?.find((member: any) => member.user_id === user?.id)?.role || 'Member';
-            
+          {myProjects.map(project => {
+            const myRole =
+              project.members?.find((m: any) => m.user_id === user?.id)?.role ||
+              'Member';
+
+            const start = parseLocalDate(project.start_date);
+            const end = parseLocalDate(project.end_date);
+
             return (
-              <div key={project.id} className="bg-white border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+              <div
+                key={project.id}
+                className="bg-white border rounded-lg hover:shadow-md transition-shadow"
+              >
                 <div className="p-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg font-semibold">{project.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{project.description}</p>
-                      
+                      <p className="text-sm text-gray-600 mt-1">
+                        {project.description}
+                      </p>
+
                       <div className="flex items-center mt-3 text-sm text-gray-500">
                         <Clock className="h-4 w-4 mr-1" />
                         <span className="mr-4">
-                          {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
+                          {start ? format(start, 'PPP') : '-'} –{' '}
+                          {end ? format(end, 'PPP') : 'Ongoing'}
                         </span>
                         <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                           {myRole}
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-sm"
                         onClick={() => {
                           setActiveProjectId(project.id);
                           setApplyOpen(true);
@@ -132,10 +151,10 @@ const MyProjects = () => {
                       >
                         Apply Leave
                       </Button>
+
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-sm"
                         onClick={() => {
                           setActiveProjectId(project.id);
                           setHolidaysOpen(true);
@@ -151,6 +170,7 @@ const MyProjects = () => {
           })}
         </div>
       )}
+
       <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -171,23 +191,36 @@ const MyProjects = () => {
           <DialogHeader>
             <DialogTitle>Project Holidays</DialogTitle>
           </DialogHeader>
+
           {holidaysLoading ? (
-            <div className="py-2 text-sm text-muted-foreground">Loading holidays...</div>
+            <div className="py-2 text-sm text-muted-foreground">
+              Loading holidays...
+            </div>
           ) : holidays.length === 0 ? (
-            <div className="py-2 text-sm text-muted-foreground">No holidays defined for this project.</div>
+            <div className="py-2 text-sm text-muted-foreground">
+              No holidays defined for this project.
+            </div>
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {holidays.map((h: any) => (
-                <div key={h.id} className="p-3 border rounded-md">
-                  <div className="font-medium text-sm">{h.holiday_name || 'Holiday'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(h.date).toLocaleDateString()}
+              {holidays.map((h: any) => {
+                const holidayDate = parseLocalDate(h.date);
+
+                return (
+                  <div key={h.id} className="p-3 border rounded-md">
+                    <div className="font-medium text-sm">
+                      {h.holiday_name || 'Holiday'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {holidayDate ? format(holidayDate, 'PPP') : '-'}
+                    </div>
+                    {h.description && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {h.description}
+                      </div>
+                    )}
                   </div>
-                  {h.description && (
-                    <div className="text-xs text-muted-foreground mt-1">{h.description}</div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </DialogContent>

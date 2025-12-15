@@ -4,7 +4,6 @@ import { useProjects } from '@/contexts/ProjectContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -34,8 +33,8 @@ import {
 
 type LeaveFormValues = {
   leave_type_id: string;
-  start_date: string;
-  end_date: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
   reason: string;
 };
 
@@ -45,12 +44,17 @@ interface ProjectLeaveFormProps {
   onCancel?: () => void;
 }
 
-const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmitted, onCancel }) => {
+const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
+  projectId,
+  onSubmitted,
+  onCancel,
+}) => {
   const { user } = useAuth();
   const { createLeaveRequest } = useProjects();
+  const { toast } = useToast();
+
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const form = useForm<LeaveFormValues>({
     defaultValues: {
@@ -61,56 +65,114 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
     },
   });
 
+  /* ===============================
+     Load Leave Types
+  =============================== */
   useEffect(() => {
     const loadLeaveTypes = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('leave_types')
         .select('id, name, is_active')
         .eq('is_active', true)
         .order('name');
-      if (!error) setLeaveTypes(data || []);
+
+      setLeaveTypes(data || []);
     };
+
     loadLeaveTypes();
   }, []);
 
-  const calculateDays = (start: string, end: string) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffTime = endDate.getTime() - startDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays > 0 ? diffDays : 0;
+  /* ===============================
+     Date Helpers (FIXED)
+  =============================== */
+
+  // Convert Date → YYYY-MM-DD (local-safe)
+  const toLocalDateString = (date: Date) => {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
   };
 
+  // Safely create Date from YYYY-MM-DD
+  const createLocalDate = (dateStr: string) => {
+    if (!dateStr) return undefined;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    return new Date(dateStr.split('T')[0]);
+  };
+
+  // Calculate inclusive day count
+  const calculateDays = (start: string, end: string) => {
+    if (!start || !end) return 0;
+
+    const [sy, sm, sd] = start.split('-').map(Number);
+    const [ey, em, ed] = end.split('-').map(Number);
+
+    const startDate = new Date(sy, sm - 1, sd);
+    const endDate = new Date(ey, em - 1, ed);
+
+    const diff =
+      (endDate.getTime() - startDate.getTime()) /
+        (1000 * 60 * 60 * 24) +
+      1;
+
+    return diff > 0 ? diff : 0;
+  };
+
+  /* ===============================
+     Submit
+  =============================== */
   const onSubmit = async (values: LeaveFormValues) => {
     if (!user) return;
-    const totalDays = calculateDays(values.start_date, values.end_date);
+
+    const totalDays = calculateDays(
+      values.start_date,
+      values.end_date
+    );
+
     try {
       setLoading(true);
+
       await createLeaveRequest({
         project_id: projectId,
         consultant_id: user.id,
         leave_type_id: values.leave_type_id,
-        start_date: new Date(values.start_date).toISOString(),
-        end_date: new Date(values.end_date).toISOString(),
+        start_date: values.start_date,
+        end_date: values.end_date,
         total_days: totalDays,
         reason: values.reason,
         status: 'pending',
         created_at: new Date().toISOString(),
       } as any);
+
       toast({
         title: 'Leave request submitted',
-        description: 'Your project leave request has been sent for approval.',
+        description:
+          'Your project leave request has been sent for approval.',
       });
-      if (onSubmitted) onSubmitted();
+
+      onSubmitted?.();
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===============================
+     UI
+  =============================== */
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+      >
+        {/* Leave Type */}
         <FormField
           control={form.control}
           name="leave_type_id"
@@ -118,7 +180,10 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
           render={({ field }) => (
             <FormItem>
               <FormLabel>Leave Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select leave type" />
@@ -126,7 +191,9 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
                 </FormControl>
                 <SelectContent>
                   {leaveTypes.map((lt) => (
-                    <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
+                    <SelectItem key={lt.id} value={lt.id}>
+                      {lt.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -135,7 +202,9 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
           )}
         />
 
+        {/* Dates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Start Date */}
           <FormField
             control={form.control}
             name="start_date"
@@ -148,18 +217,49 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
                     <FormControl>
                       <Button
                         variant="outline"
-                        className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                        className={cn(
+                          'w-full pl-3 text-left font-normal',
+                          !field.value &&
+                            'text-muted-foreground'
+                        )}
                       >
-                        {field.value ? format(new Date(field.value), 'PPP') : <span>Pick a date</span>}
+                        {field.value ? (
+                          (() => {
+                            const [y, m, d] =
+                              field.value.split('-');
+                            return format(
+                              new Date(
+                                Number(y),
+                                Number(m) - 1,
+                                Number(d)
+                              ),
+                              'PPP'
+                            );
+                          })()
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
                     <Calendar
                       mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => field.onChange(date?.toISOString().split('T')[0])}
+                      selected={
+                        field.value
+                          ? createLocalDate(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        date &&
+                        field.onChange(
+                          toLocalDateString(date)
+                        )
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -169,6 +269,7 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
             )}
           />
 
+          {/* End Date */}
           <FormField
             control={form.control}
             name="end_date"
@@ -181,18 +282,49 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
                     <FormControl>
                       <Button
                         variant="outline"
-                        className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                        className={cn(
+                          'w-full pl-3 text-left font-normal',
+                          !field.value &&
+                            'text-muted-foreground'
+                        )}
                       >
-                        {field.value ? format(new Date(field.value), 'PPP') : <span>Pick a date</span>}
+                        {field.value ? (
+                          (() => {
+                            const [y, m, d] =
+                              field.value.split('-');
+                            return format(
+                              new Date(
+                                Number(y),
+                                Number(m) - 1,
+                                Number(d)
+                              ),
+                              'PPP'
+                            );
+                          })()
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
                     <Calendar
                       mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => field.onChange(date?.toISOString().split('T')[0])}
+                      selected={
+                        field.value
+                          ? createLocalDate(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        date &&
+                        field.onChange(
+                          toLocalDateString(date)
+                        )
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -203,6 +335,7 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
           />
         </div>
 
+        {/* Reason */}
         <FormField
           control={form.control}
           name="reason"
@@ -211,16 +344,29 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({ projectId, onSubmit
             <FormItem>
               <FormLabel>Reason</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter reason for leave" {...field} />
+                <Textarea
+                  placeholder="Enter reason for leave"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" type="button" onClick={onCancel} disabled={loading}>Cancel</Button>
-          <Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit Request'}</Button>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Submitting…' : 'Submit Request'}
+          </Button>
         </div>
       </form>
     </Form>

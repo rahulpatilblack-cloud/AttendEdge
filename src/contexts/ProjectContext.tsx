@@ -211,6 +211,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { members, ...projectUpdates } = updates;
 
       // Update the project in the projects table
+      // Get the current timestamp for updated_at
+      const now = new Date().toISOString();
+      
       const { error: projectError } = await supabase
         .from('projects')
         .update({
@@ -218,6 +221,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
           description: projectUpdates.description,
           status: projectUpdates.status,
           client_name: projectUpdates.client_name,
+          start_date: projectUpdates.start_date,
+          end_date: projectUpdates.end_date,
+          updated_at: now
         })
         .eq('id', id);
 
