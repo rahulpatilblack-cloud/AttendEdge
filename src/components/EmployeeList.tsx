@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit } from 'lucide-react';
+import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download } from 'lucide-react';
 import EditEmployeeForm from './EditEmployeeForm';
 import {
   AlertDialog,
@@ -59,6 +59,36 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  const exportToCSV = () => {
+    if (employees.length === 0) return;
+
+    const headers = ['Name', 'Email', 'Role', 'Department', 'Position', 'Hire Date'];
+    
+    const csvRows = employees.map(emp => [
+      `"${emp.name}"`,
+      `"${emp.email}"`,
+      `"${emp.role}"`,
+      `"${emp.department || ''}"`,
+      `"${emp.position || ''}"`,
+      `"${emp.hire_date ? new Date(emp.hire_date).toLocaleDateString() : ''}"`
+    ].join(','));
+
+    const csvContent = [
+      headers.join(','),
+      ...csvRows
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `employees_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const fetchEmployees = React.useCallback(async () => {
     if (!currentCompany) {
@@ -251,6 +281,15 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           <h2 className="text-xl font-bold">{headingTitle}</h2>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={exportToCSV}
+            disabled={employees.length === 0}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
           {additionalActions}
           {canAddEmployee && (
             <Button 
