@@ -41,6 +41,7 @@ interface EmployeeListProps {
   emptyTitle?: string;
   emptySubtitle?: string;
   addButtonLabel?: string;
+  additionalActions?: React.ReactNode;
 }
 
 const EmployeeList: React.FC<EmployeeListProps> = ({
@@ -50,6 +51,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   emptyTitle,
   emptySubtitle,
   addButtonLabel,
+  additionalActions,
 }) => {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
@@ -248,15 +250,18 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           <Users className="w-5 h-5 text-blue-600" />
           <h2 className="text-xl font-bold">{headingTitle}</h2>
         </div>
-        {canAddEmployee && (
-          <Button 
-            onClick={onAddEmployee}
-            variant="gradient"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            {addLabel}
-          </Button>
-        )}
+        <div className="flex items-center space-x-2">
+          {additionalActions}
+          {canAddEmployee && (
+            <Button 
+              onClick={onAddEmployee}
+              variant="gradient"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       {employees.length === 0 ? (
