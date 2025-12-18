@@ -28,6 +28,7 @@ import ResetPassword from './ResetPassword';
 import { SessionTimeoutModal } from './SessionTimeoutModal';
 import { SessionStatusIndicator } from './SessionStatusIndicator';
 import { useSession } from '@/contexts/SessionContext';
+import { useProjectLeave } from '@/hooks/useProjectLeave';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -36,6 +37,17 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const { todayAttendance, recentAttendance, checkIn, checkOut, isLoading: attendanceLoading, fetchTodayAttendance, fetchRecentAttendance } = useAttendance();
+  const { 
+    projectLeaveBalances = 0, 
+    pendingProjectLeaveRequests = [], 
+    leaveMetrics = { 
+      totalThisMonth: 0, 
+      pendingCount: 0, 
+      approvedCount: 0, 
+      teamPendingCount: 0 
+    }, 
+    isLoading: isProjectLeaveLoading 
+  } = useProjectLeave();
   // Use 'manager' mode for users with admin/manager roles, 'employee' for others
   const isManager = ['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '');
   const { leaveRequests, leaveBalances, pendingRequests, approveLeaveRequest, rejectLeaveRequest, isLoading: leaveLoading, fetchLeaveRequests, fetchLeaveBalances } = useLeave(isManager ? 'manager' : 'employee');
@@ -352,7 +364,127 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Project Leave Card */}
+          <Card 
+            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-teal-100 to-cyan-50 hover:shadow-2xl transition-all duration-150 group cursor-pointer"
+            onClick={() => onNavigate?.('project-leave')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="rounded-full bg-teal-200 p-3 shadow-lg ring-4 ring-teal-100">
+                  <Calendar className="w-7 h-7 text-teal-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-md font-semibold text-gray-600">Project Leave</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <div>
+                      <p className="text-2xl font-extrabold text-teal-800">
+                        {projectLeaveBalances} {projectLeaveBalances === 1 ? 'day' : 'days'}
+                      </p>
+                      <p className="text-xs text-gray-500">Remaining</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-extrabold text-amber-600">
+                        {leaveMetrics.pendingCount}
+                      </p>
+                      <p className="text-xs text-gray-500">Pending</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-extrabold text-green-600">
+                        {leaveMetrics.approvedCount}
+                      </p>
+                      <p className="text-xs text-gray-500">Approved</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Project Leave Card - Only for managers/admins */}
+          {['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '') && (
+            <Card 
+              className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-amber-100 to-orange-50 hover:shadow-2xl transition-all duration-150 cursor-pointer"
+              onClick={() => onNavigate?.('manage-project-leave')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-full bg-amber-200 p-3 shadow-lg ring-4 ring-amber-100">
+                    <Users className="w-7 h-7 text-amber-700" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-md font-semibold text-gray-600">Team Project Leave</p>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="text-center p-2 bg-amber-50 rounded-lg">
+                        <p className="text-2xl font-bold text-amber-700">{leaveMetrics.teamPendingCount}</p>
+                        <p className="text-xs text-gray-500">Pending</p>
+                      </div>
+                      <div className="text-center p-2 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-700">
+                          {pendingProjectLeaveRequests.length}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {pendingProjectLeaveRequests.length === 1 ? 'Request' : 'Requests'}
+                        </p>
+                      </div>
+                      <div className="text-center p-2 bg-purple-50 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-700">
+                          {new Set(pendingProjectLeaveRequests.map((r: any) => r.consultant_id)).size}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Set(pendingProjectLeaveRequests.map((r: any) => r.consultant_id)).size === 1 ? 'Member' : 'Members'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
+
+        {/* Project Leave Metrics Card */}
+        <Card 
+          className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-indigo-100 to-purple-50 hover:shadow-2xl transition-all duration-150"
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-indigo-200 p-3 shadow-lg ring-4 ring-indigo-100">
+                <Calendar className="w-7 h-7 text-indigo-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-md font-semibold text-gray-600 mb-3">My Project Leave - {new Date().toLocaleString('default', { month: 'long' })}</p>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center p-2 bg-indigo-50 rounded-lg">
+                    <p className="text-2xl font-bold text-indigo-800">{leaveMetrics.totalThisMonth}</p>
+                    <p className="text-xs text-gray-500">Total</p>
+                  </div>
+                  <div className="text-center p-2 bg-amber-50 rounded-lg">
+                    <p className="text-2xl font-bold text-amber-700">{leaveMetrics.pendingCount}</p>
+                    <p className="text-xs text-gray-500">Pending</p>
+                  </div>
+                  <div className="text-center p-2 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-700">{leaveMetrics.approvedCount}</p>
+                    <p className="text-xs text-gray-500">Approved</p>
+                  </div>
+                </div>
+
+                {['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '') && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600">Team Pending Requests</p>
+                      <Badge variant="outline" className="bg-white">
+                        {leaveMetrics.teamPendingCount}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
