@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAttendance } from '@/hooks/useAttendance';
 import { useLeave } from '@/hooks/useLeave';
+import { useProjectLeave } from '@/hooks/useProjectLeave'; // Added import
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 
@@ -36,6 +37,9 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   const { currentCompany } = useCompany();
   const { todayAttendance, recentAttendance } = useAttendance();
   const { leaveRequests, leaveBalances, pendingRequests } = useLeave('employee');
+  
+  // Added project leave hook
+  const { pendingProjectLeaveRequests, projectLeaveBalances, isLoading: isProjectLeaveLoading } = useProjectLeave();
 
   // Calculate attendance statistics
   const getAttendanceStats = () => {
@@ -77,6 +81,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     <div className="space-y-6">
       {/* Quick Actions Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Today's Status Card */}
         <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -94,13 +99,14 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           </CardContent>
         </Card>
 
+        {/* REPLACED: Project Leave Balance Card */}
         <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-700">Leave Balance</p>
+                <p className="text-sm font-medium text-green-700">Project Leave Balance</p>
                 <p className="text-2xl font-bold text-green-800 mt-1">
-                  {leaveBalances?.reduce((total, balance) => total + balance.remaining_days, 0) || 0}
+                  {projectLeaveBalances}
                 </p>
                 <p className="text-xs text-green-600">days remaining</p>
               </div>
@@ -111,13 +117,17 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-gradient-to-br from-purple-50 to-purple-100">
+        {/* REPLACED: Pending Project Requests Card */}
+        <Card 
+          className="hover:shadow-lg transition-all duration-200 border-0 bg-gradient-to-br from-purple-50 to-purple-100 cursor-pointer"
+          onClick={() => onNavigate('manage-project-leave')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-700">Pending Requests</p>
+                <p className="text-sm font-medium text-purple-700">Pending Project Requests</p>
                 <p className="text-2xl font-bold text-purple-800 mt-1">
-                  {pendingRequests?.length || 0}
+                  {pendingProjectLeaveRequests.length}
                 </p>
                 <p className="text-xs text-purple-600">awaiting approval</p>
               </div>
@@ -128,6 +138,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           </CardContent>
         </Card>
 
+        {/* Attendance Rate Card */}
         <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-gradient-to-br from-orange-50 to-orange-100">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">

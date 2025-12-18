@@ -230,8 +230,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <Button variant="gradient" className="transition-transform hover:scale-105 shadow-lg" onClick={handleCheckInOut}>
                   {todayAttendance?.check_in_time && !todayAttendance?.check_out_time ? 'Check Out' : 'Check In'}
                 </Button>
-                <Button variant="gradient" className="transition-transform hover:scale-105 shadow-lg" onClick={() => onNavigate?.('leave')}>
-                  Request Leave
+                <Button variant="gradient" className="transition-transform hover:scale-105 shadow-lg" onClick={() => onNavigate?.('project-leave')}>
+                  Request Project Leave
                 </Button>
                 <Button 
                   variant="gradient" 
@@ -471,21 +471,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </Card>
         )}
       </div>
-      <Card className={`${themeClass} card-theme bg-white border-0 shadow-lg mb-6 w-full rounded-2xl p-6`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-lg">
-            <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-            Quick Access
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
-            <Button variant="gradient" onClick={() => onNavigate?.('leave')}>Apply for Leave</Button>
-            <Button variant="gradient" onClick={() => onNavigate?.('attendance')}>Attendance Calendar</Button>
-            <Button variant="gradient" onClick={() => onNavigate?.('reports')}>View Payslip</Button>
-          </div>
-        </CardContent>
-      </Card>
+      
       {(['admin', 'super_admin'].includes(user?.role || '')) && (
         <Card className={`${themeClass} card-theme bg-white border-0 shadow-lg mb-6 w-full rounded-2xl p-6`}>
           <CardHeader className="pb-3">

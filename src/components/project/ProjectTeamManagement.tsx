@@ -125,7 +125,7 @@ const ProjectTeamManagement = () => {
     }
   };
 
-  // FIXED: Direct Supabase authentication for bulk import
+  // FIXED: Direct Supabase authentication for bulk import with duplicate check
   const addConsultantDirectly = async (
     email: string,
     password: string,
@@ -136,6 +136,30 @@ const ProjectTeamManagement = () => {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('🔹 Starting consultant creation:', { email, name, role, department });
+
+      // Step 0: Check if user already exists in the database
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        console.log('ℹ️ User already exists:', email);
+        return { 
+          success: false, 
+          error: `A user with email ${email} already exists in the system.` 
+        };
+      }
+
+      if (userCheckError && userCheckError.code !== 'PGRST116') {
+        // PGRST116 is "No rows found" which is expected for new users
+        console.error('❌ Error checking for existing user:', userCheckError);
+        return { 
+          success: false, 
+          error: 'Error checking for existing user. Please try again.' 
+        };
+      }
 
       // Step 1: Create auth user using Supabase Admin API
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -152,9 +176,13 @@ const ProjectTeamManagement = () => {
       if (authError) {
         console.error('❌ Auth error:', authError);
         
-        // Handle duplicate email error
-        if (authError.message?.includes('already registered')) {
-          return { success: false, error: 'Email already exists' };
+        // Handle duplicate email error (this is a fallback in case the first check missed something)
+        if (authError.message?.includes('already registered') || 
+            authError.message?.includes('already in use')) {
+          return { 
+            success: false, 
+            error: 'This email is already registered. Please use a different email address.' 
+          };
         }
         
         return { success: false, error: authError.message };

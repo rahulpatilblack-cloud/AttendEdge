@@ -60,6 +60,15 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
+  const toTitleCase = (str: string) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const exportToCSV = () => {
     if (employees.length === 0) return;
 
@@ -326,7 +335,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
             <Card key={employee.id} className="border-0 shadow-lg card-hover">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{employee.name}</CardTitle>
+                  <CardTitle className="text-base">{toTitleCase(employee.name)}</CardTitle>
                   <div className="flex items-center space-x-2">
                     <Badge variant={employee.role === 'admin' || employee.role === 'super_admin' ? 'default' : 'secondary'}>
                       {employee.role.replace('_', ' ')}
@@ -358,7 +367,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remove Employee</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to remove {employee.name}? This action will deactivate their account and they will no longer be able to access the system.
+                                Are you sure you want to remove {toTitleCase(employee.name)}? This action will deactivate their account and they will no longer be able to access the system.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
