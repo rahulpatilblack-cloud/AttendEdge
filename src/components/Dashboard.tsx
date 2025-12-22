@@ -323,48 +323,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </CardContent>
           </Card>
 
-          {/* Leave Balance Card - Show if there are active leave types */}
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-purple-100 to-indigo-50 hover:shadow-2xl transition-all duration-150 group">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="rounded-full bg-purple-200 p-3 shadow-lg ring-4 ring-purple-100">
-                  <Calendar className="w-7 h-7 text-purple-700" />
-                </div>
-                <div>
-                  <p className="text-md font-semibold text-gray-600">Leave Balance</p>
-                  <div className="flex items-center mt-2">
-                    <span className="text-2xl font-extrabold text-purple-800 mr-2">
-                      {totalLeaveBalance} {totalLeaveBalance === 1 ? 'day' : 'days'}
-                    </span>
-                    <Badge className="ml-1 bg-purple-500 text-white">
-                      {totalActiveLeaveTypes} {totalActiveLeaveTypes === 1 ? 'type' : 'types'}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {totalUsedDays} of {totalAllocatedDays} days used
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-pink-100 to-red-50 hover:shadow-2xl transition-all duration-150 group">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="rounded-full bg-pink-200 p-3 shadow-lg ring-4 ring-pink-100">
-                  <AlertCircle className="w-7 h-7 text-pink-700" />
-                </div>
-                <div>
-                  <p className="text-md font-semibold text-gray-600">Pending Requests</p>
-                  <div className="flex items-center mt-2">
-                    <span className="text-xl font-extrabold text-pink-800 mr-2">{pendingLeaveRequests}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">Leave request(s)</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Project Leave Card */}
           <Card 
             className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-teal-100 to-cyan-50 hover:shadow-2xl transition-all duration-150 group cursor-pointer"
@@ -394,7 +352,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       <p className="text-2xl font-extrabold text-green-600">
                         {leaveMetrics.approvedCount}
                       </p>
-                      <p className="text-xs text-gray-500">Approved</p>
+                      <p className="text-xs text-gray-500">
+                        {leaveMetrics.approvedCount} of {leaveMetrics.approvedCount + projectLeaveBalances} days
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -485,123 +445,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className={`${themeClass} card-theme border-0 shadow-lg`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <Clock className="w-5 h-5 mr-2 text-primary" />
-                Recent Attendance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {((recentAttendance || []).slice(0, 4)).map((record, index) => (
-                <div key={record.id} className="flex items-center justify-between p-2 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      record.status === 'present' ? 'bg-green-500' : 
-                      record.status === 'holiday' ? 'bg-blue-500' : 'bg-red-500'
-                    }`} />
-                    <span className="font-medium">
-                      {index === 0 ? 'Today' : new Date(record.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    <p>
-                      {record.check_in_time 
-                        ? new Date(record.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '-'
-                      } - {record.check_out_time 
-                        ? new Date(record.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : index === 0 && record.check_in_time ? 'Active' : '-'
-                      }
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className={`${themeClass} card-theme border-0 shadow-lg`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <Calendar className="w-5 h-5 mr-2 text-primary" />
-                Leave Requests
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {((leaveRequests || []).slice(0, 3)).map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-2 rounded-lg">
-                  <div>
-                    <p className="font-medium">
-                      {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {request.leave_types.name} • {request.total_days} day(s)
-                    </p>
-                  </div>
-                  <Badge variant={
-                    request.status === 'approved' ? 'default' : 
-                    request.status === 'pending' ? 'secondary' : 'destructive'
-                  }>
-                    {request.status}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Admin/Manager Specific Section - Pending Leave Requests */}
-        {(['reporting_manager', 'admin', 'super_admin'].includes(user?.role || '') && ((pendingRequests || []).length > 0)) && (
-          <Card className={`${themeClass} card-theme border-0 shadow-lg`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <AlertCircle className="w-5 h-5 mr-2 text-primary" />
-                Team Leave Requests Pending Approval
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {((pendingRequests || []).slice(0, 3)).map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-2 rounded-lg">
-                  <div>
-                    <p className="font-medium">{request.employees.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {request.leave_types.name} • {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()} • {request.total_days} day(s)
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">{request.reason}</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      size="sm" 
-                      className="gradient-primary text-white border-0"
-                      onClick={() => handleApproveLeave(request.id)}
-                      disabled={leaveLoading}
-                    >
-                      Approve
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleRejectLeave(request.id)}
-                      disabled={leaveLoading}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {((pendingRequests || []).length > 3) && (
-                <div className="text-center">
-                  <Button variant="outline" onClick={() => onNavigate?.('leave-management')}>
-                    View All Pending Requests ({(pendingRequests || []).length})
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
       
       {(['admin', 'super_admin'].includes(user?.role || '')) && (

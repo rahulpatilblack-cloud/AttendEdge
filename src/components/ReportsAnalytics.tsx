@@ -36,7 +36,7 @@ interface DatabaseAttendanceRecord {
   status: string;
   check_in_time: string | null;
   check_out_time: string | null;
-  profiles: {
+  employees: {
     name: string;
     team_id: string | null;
   } | null;
@@ -60,7 +60,7 @@ interface DatabaseLeaveRequest {
     id: string;
     name: string;
   };
-  profiles?: {
+  employees?: {
     name: string;
     team_id: string | null;
   };
@@ -271,7 +271,7 @@ const ReportsAnalytics = () => {
         .from('attendance')
         .select(`
           *,
-          profiles!employee_id(name, team_id, role)
+          employees!employee_id(name, team_id, role)
         `)
         .eq('company_id', currentCompany.id)
         .gte('date', dateRange.start)
@@ -288,7 +288,7 @@ const ReportsAnalytics = () => {
         .select(`
           *,
           leave_types!leave_type_id(id, name),
-          profiles!employee_id(name, team_id, role)
+          employees!employee_id(name, team_id, role)
         `)
         .eq('company_id', currentCompany.id)
         .gte('start_date', dateRange.start)
@@ -317,10 +317,10 @@ const ReportsAnalytics = () => {
       // Filter by team if needed
       const filteredData: RawData = {
         attendance: (attendanceData || []).filter(record => 
-          team === 'all' || record.profiles?.team_id === team
+          team === 'all' || record.employees?.team_id === team
         ),
         leaves: (leavesData || []).filter(record =>
-          team === 'all' || record.profiles?.team_id === team
+          team === 'all' || record.employees?.team_id === team
         ),
         employees: (employeesData || []).filter(employee =>
           team === 'all' || employee.team_id === team
@@ -347,7 +347,7 @@ const ReportsAnalytics = () => {
         .from('attendance')
         .select(`
           *,
-          profiles!employee_id(team_id, role)
+          employees!employee_id(team_id, role)
         `)
         .eq('company_id', currentCompany.id)
         .eq('date', selectedDate.toISOString().split('T')[0]);
@@ -359,7 +359,7 @@ const ReportsAnalytics = () => {
 
       // Filter by team first
       const filteredData = (data || []).filter(record => 
-        team === 'all' || record.profiles?.team_id === team
+        team === 'all' || record.employees?.team_id === team
       );
 
       const stats = {
@@ -389,7 +389,7 @@ const ReportsAnalytics = () => {
         .select(`
           *,
           leave_types!leave_type_id(id, name),
-          profiles!employee_id(team_id, role)
+          employees!employee_id(team_id, role)
         `)
         .eq('company_id', currentCompany.id)
         .eq('start_date', selectedDate.toISOString().split('T')[0]);
@@ -401,7 +401,7 @@ const ReportsAnalytics = () => {
 
       // Filter by team first
       const filteredData = (data || []).filter(record => 
-        team === 'all' || record.profiles?.team_id === team
+        team === 'all' || record.employees?.team_id === team
       );
 
       const stats = processLeaveData(filteredData);
@@ -461,8 +461,8 @@ const ReportsAnalytics = () => {
       const type = leave.leave_types.name.toLowerCase();
       const status = leave.status?.toLowerCase() || 'pending';
       const month = leave.start_date ? new Date(leave.start_date).toLocaleString('default', { month: 'short' }) : '';
-      const employeeName = leave.profiles?.name || 'Unknown';
-      const teamName = teams.find(t => t.id === (leave.profiles?.team_id || ''))?.name || 'Unassigned';
+      const employeeName = leave.employees?.name || 'Unknown';
+      const teamName = teams.find(t => t.id === (leave.employees?.team_id || ''))?.name || 'Unassigned';
       
       // Count by type
       if (type.includes('annual')) {
@@ -774,8 +774,8 @@ const ReportsAnalytics = () => {
 
         case 'leave':
           data = filteredLeaves.map(record => ({
-            'Employee Name': record.profiles?.name,
-            Team: record.profiles?.team_id,
+            'Employee Name': record.employees?.name,
+            Team: record.employees?.team_id,
             'Leave Type': record.leave_types?.name,
             'Start Date': record.start_date,
             'End Date': record.end_date,
@@ -937,7 +937,7 @@ const ReportsAnalytics = () => {
       if (leaveDateRange.end && new Date(leave.end_date) > new Date(leaveDateRange.end)) return false;
       
       // Filter by search term
-      if (leaveSearch && !leave.profiles?.name?.toLowerCase().includes(leaveSearch.toLowerCase())) return false;
+      if (leaveSearch && !leave.employees?.name?.toLowerCase().includes(leaveSearch.toLowerCase())) return false;
       
       return true;
     });
@@ -1702,10 +1702,10 @@ const ReportsAnalytics = () => {
                                   <tr key={leave.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                       <div className="text-sm font-medium text-gray-900">
-                                        {leave.profiles?.name || 'Unknown'}
+                                        {leave.employees?.name || 'Unknown'}
                                       </div>
                                       <div className="text-xs text-gray-500">
-                                        {teams.find(t => t.id === leave.profiles?.team_id)?.name || 'Unassigned'}
+                                        {teams.find(t => t.id === leave.employees?.team_id)?.name || 'Unassigned'}
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1864,10 +1864,10 @@ const ReportsAnalytics = () => {
                           {filteredLeaves.map((record, index) => (
                             <tr key={record.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {record.profiles?.name || 'Unknown'}
+                                {record.employees?.name || 'Unknown'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {teams.find(t => t.id === record.profiles?.team_id)?.name || 'Unassigned'}
+                                {teams.find(t => t.id === record.employees?.team_id)?.name || 'Unassigned'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {record.leave_types?.name || 'Unknown'}

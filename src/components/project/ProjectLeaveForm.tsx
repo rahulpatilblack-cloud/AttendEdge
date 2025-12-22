@@ -35,6 +35,8 @@ type LeaveFormValues = {
   leave_type_id: string;
   start_date: string; // YYYY-MM-DD
   end_date: string;   // YYYY-MM-DD
+  leave_duration: 'full_day' | 'half_day';
+  half_day_period?: 'morning' | 'afternoon';
   reason: string;
 };
 
@@ -61,9 +63,13 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
       leave_type_id: '',
       start_date: '',
       end_date: '',
+      leave_duration: 'full_day',
+      half_day_period: 'morning',
       reason: '',
     },
   });
+
+  const watchLeaveDuration = form.watch('leave_duration');
 
   /* ===============================
      Load Leave Types
@@ -107,8 +113,8 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
     return new Date(dateStr.split('T')[0]);
   };
 
-  // Calculate inclusive day count
-  const calculateDays = (start: string, end: string) => {
+  // Calculate days based on leave duration
+  const calculateDays = (start: string, end: string, duration: 'full_day' | 'half_day') => {
     if (!start || !end) return 0;
 
     const [sy, sm, sd] = start.split('-').map(Number);
@@ -117,12 +123,16 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
     const startDate = new Date(sy, sm - 1, sd);
     const endDate = new Date(ey, em - 1, ed);
 
-    const diff =
-      (endDate.getTime() - startDate.getTime()) /
-        (1000 * 60 * 60 * 24) +
-      1;
+    // Calculate full days between dates (inclusive)
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    return diff > 0 ? diff : 0;
+    if (duration === 'half_day' && diffDays === 1) {
+      return 0.5; // Single half day
+    }
+    
+    // For multiple days, only count full days
+    return diffDays > 0 ? diffDays : 0;
   };
 
   /* ===============================
@@ -133,23 +143,37 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
 
     const totalDays = calculateDays(
       values.start_date,
-      values.end_date
+      values.end_date,
+      values.leave_duration
     );
 
     try {
       setLoading(true);
 
-      await createLeaveRequest({
+      const leaveData: any = {
         project_id: projectId,
         consultant_id: user.id,
         leave_type_id: values.leave_type_id,
         start_date: values.start_date,
         end_date: values.end_date,
         total_days: totalDays,
+        leave_duration: values.leave_duration,
         reason: values.reason,
         status: 'pending',
         created_at: new Date().toISOString(),
-      } as any);
+      };
+
+      // Add half day period if it's a half day leave
+      if (values.leave_duration === 'half_day') {
+        leaveData.half_day_period = values.half_day_period;
+        
+        // If it's a half day, start and end dates should be the same
+        if (values.start_date !== values.end_date) {
+          leaveData.end_date = values.start_date; // Ensure end date matches start date for half day
+        }
+      }
+
+      await createLeaveRequest(leaveData);
 
       toast({
         title: 'Leave request submitted',
@@ -201,6 +225,73 @@ const ProjectLeaveForm: React.FC<ProjectLeaveFormProps> = ({
             </FormItem>
           )}
         />
+
+        {/* Leave Duration */}
+        <FormField
+          control={form.control}
+          name="leave_duration"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Leave Duration</FormLabel>
+              <div className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="full_day"
+                    value="full_day"
+                    checked={field.value === 'full_day'}
+                    onChange={() => field.onChange('full_day')}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="full_day" className="text-sm font-medium">
+                    Full Day
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="half_day"
+                    value="half_day"
+                    checked={field.value === 'half_day'}
+                    onChange={() => field.onChange('half_day')}
+                    className="h-4 w-4 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="half_day" className="text-sm font-medium">
+                    Half Day
+                  </label>
+                </div>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        {/* Half Day Period (only shown when half day is selected) */}
+        {watchLeaveDuration === 'half_day' && (
+          <FormField
+            control={form.control}
+            name="half_day_period"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Half Day Period</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning (9 AM - 1 PM)</SelectItem>
+                    <SelectItem value="afternoon">Afternoon (1 PM - 6 PM)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Dates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

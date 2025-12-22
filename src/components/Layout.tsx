@@ -396,7 +396,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
               })}
 
               {/* Human Resource retractable menu - Hidden for employees and consultants */}
-              {!['employee', 'consultant'].includes(user?.role || '') && (
+{/*              {!['employee', 'consultant'].includes(user?.role || '') && (
               <div>
                 <button
                   className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)]"
@@ -455,28 +455,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                     <ClipboardList className="w-5 h-5" />
                     <span className="sidebar-label text-sm">Manage Leave Requests</span>
                   </button>
-                  <button
-                    onClick={() => onTabChange('holidays')}
-                    className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                      activeTab === 'holidays' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                    }`}
-                  >
-                    <CalendarDays className="w-5 h-5" />
-                    <span className="sidebar-label text-sm">Holidays</span>
-                  </button>
-                  <button
-                    onClick={() => onTabChange('profile')}
-                    className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                      activeTab === 'profile' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                    }`}
-                  >
-                    <User className="w-5 h-5" />
-                    <span className="sidebar-label text-sm">Profile</span>
-                  </button>
+                  
+                  
                 </div>
               </div>
               )}
-
+*/}
               {/* Leave Management retractable menu */}
               <div>
                 <button
@@ -630,7 +614,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
               )}
 
               {/* Reports retractable menu */}
-              {['admin', 'super_admin', 'reporting_manager'].includes(user?.role) && (
+     {/*         {['admin', 'super_admin', 'reporting_manager'].includes(user?.role) && (
                 <>
                   <button
                     className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)] mt-2"
@@ -677,7 +661,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                   </div>
                 </>
               )}
-
+*/}
               {/* Render the rest of the navigation items */}
               {navItems.filter(item => ![
                 'dashboard', 
