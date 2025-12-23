@@ -18,7 +18,10 @@ import {
   TrendingUp,
   MapPin,
   Key,
-  ShieldCheck
+  ShieldCheck,
+  Briefcase,
+  CalendarCheck,
+  FileText
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { THEME_OPTIONS } from '@/contexts/ThemeContext';
@@ -275,14 +278,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-green-100 to-blue-50 hover:shadow-2xl transition-all duration-150 group">
+          {/* Today's Status Card */}
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-amber-100 to-orange-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-green-200 p-3 shadow-lg ring-4 ring-green-100">
-                  <StatusIcon className={`w-7 h-7 text-green-700`} />
+                <div className="rounded-full bg-blue-100 p-3 shadow-lg ring-4 ring-blue-50">
+                  <StatusIcon className="w-7 h-7 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-md font-semibold text-gray-600">Today's Status</p>
+                  <p className="text-md font-semibold text-gray-600" >Today's Status</p>
                   <div className="flex items-center mt-2">
                     <span className="text-xl font-extrabold text-green-800 mr-2">{attendanceStatus.status}</span>
                     {todayAttendance?.check_in_time && (
@@ -299,11 +303,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-blue-100 to-cyan-50 hover:shadow-2xl transition-all duration-150 group">
+          {/* Working Hours Card */}
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-emerald-100 to-red-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-blue-200 p-3 shadow-lg ring-4 ring-blue-100">
-                  <Clock className="w-7 h-7 text-blue-700" />
+                <div className="rounded-full bg-emerald-100 p-3 shadow-lg ring-4 ring-emerald-50">
+                  <Clock className="w-7 h-7 text-emerald-600" />
                 </div>
                 <div>
                   <p className="text-md font-semibold text-gray-600">Working Hours</p>
@@ -324,14 +329,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </Card>
 
           {/* Project Leave Card */}
+          {/* Project Leave Card */}
           <Card 
-            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-teal-100 to-cyan-50 hover:shadow-2xl transition-all duration-150 group cursor-pointer"
+            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-orange-100 to-yellow-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
             onClick={() => onNavigate?.('project-leave')}
           >
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-teal-200 p-3 shadow-lg ring-4 ring-teal-100">
-                  <Calendar className="w-7 h-7 text-teal-700" />
+                <div className="rounded-full bg-violet-100 p-3 shadow-lg ring-4 ring-violet-50">
+                  <Calendar className="w-7 h-7 text-violet-600" />
                 </div>
                 <div className="flex-1">
                   <p className="text-md font-semibold text-gray-600">Project Leave</p>
@@ -363,36 +369,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </Card>
 
           {/* Team Project Leave Card - Only for managers/admins */}
+          {/* Team Project Leave Card - Only for managers/admins */}
           {['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '') && (
             <Card 
-              className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-amber-100 to-orange-50 hover:shadow-2xl transition-all duration-150 cursor-pointer"
+              className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-purple-100 to-orange-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
               onClick={() => onNavigate?.('manage-project-leave')}
             >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-amber-200 p-3 shadow-lg ring-4 ring-amber-100">
-                    <Users className="w-7 h-7 text-amber-700" />
+                  <div className="rounded-full bg-purple-100 p-3 shadow-lg ring-4 ring-purple-50">
+                    <Users className="w-7 h-7 text-purple-600" />
                   </div>
                   <div className="flex-1">
                     <p className="text-md font-semibold text-gray-600">Team Project Leave</p>
                     <div className="grid grid-cols-3 gap-2 mt-2">
-                      <div className="text-center p-2 bg-amber-50 rounded-lg">
-                        <p className="text-2xl font-bold text-amber-700">{leaveMetrics.teamPendingCount}</p>
-                        <p className="text-xs text-gray-500">Pending</p>
+                      <div className="text-center p-2 bg-purple-50 rounded-lg border border-purple-100">
+                        <p className="text-2xl font-bold text-purple-600">{leaveMetrics.teamPendingCount}</p>
+                        <p className="text-xs text-purple-700 font-medium">Pending</p>
                       </div>
-                      <div className="text-center p-2 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-700">
+                      <div className="text-center p-2 bg-orange-50 rounded-lg border border-orange-100">
+                        <p className="text-2xl font-bold text-orange-600">
                           {pendingProjectLeaveRequests.length}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-orange-700 font-medium">
                           {pendingProjectLeaveRequests.length === 1 ? 'Request' : 'Requests'}
                         </p>
                       </div>
-                      <div className="text-center p-2 bg-purple-50 rounded-lg">
-                        <p className="text-2xl font-bold text-purple-700">
+                      <div className="text-center p-2 bg-red-50 rounded-lg border border-red-100">
+                        <p className="text-2xl font-bold text-red-600">
                           {new Set(pendingProjectLeaveRequests.map((r: any) => r.consultant_id)).size}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-red-700 font-medium">
                           {new Set(pendingProjectLeaveRequests.map((r: any) => r.consultant_id)).size === 1 ? 'Member' : 'Members'}
                         </p>
                       </div>
@@ -406,7 +413,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* Project Leave Metrics Card */}
         <Card 
-          className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-indigo-100 to-purple-50 hover:shadow-2xl transition-all duration-150"
+          className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-emerald-100 to-orange-100 hover:shadow-2xl transition-all duration-150"
         >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -448,7 +455,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
       
       {(['admin', 'super_admin'].includes(user?.role || '')) && (
-        <Card className={`${themeClass} card-theme bg-white border-0 shadow-lg mb-6 w-full rounded-2xl p-6`}>
+        <Card className="bg-gradient-to-br from-slate-50 to-gray-50 from-blue-100 to-white-50 border-0 shadow-lg mb-6 w-full rounded-2xl p-6 hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
               <Users className="w-5 h-5 mr-2 text-primary" />
@@ -456,10 +463,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
-              <Button variant="gradient" onClick={() => onNavigate?.('employees')}><Users className="w-4 h-4 mr-2" />Manage Employees</Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('leave-management')}><Calendar className="w-4 h-4 mr-2" />Leave Management</Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('reports')}><TrendingUp className="w-4 h-4 mr-2" />View Reports</Button>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full">
+              <Button variant="gradient" onClick={() => onNavigate?.('manage-projects')}>
+                <Briefcase className="w-4 h-4 mr-2" />
+                Manage Consultant Projects
+              </Button>
+              <Button variant="gradient" onClick={() => onNavigate?.('manage-project-leave')}>
+                <CalendarCheck className="w-4 h-4 mr-2" />
+                Manage Consultant Leave
+              </Button>
+              <Button variant="gradient" onClick={() => onNavigate?.('project-reports')}>
+                <FileText className="w-4 h-4 mr-2" />
+                Consultant Leave Reports
+              </Button>
+              <Button variant="gradient" onClick={() => onNavigate?.('project-team-management')}>
+                <Users className="w-4 h-4 mr-2" />
+                Consultant Management
+              </Button>
             </div>
           </CardContent>
         </Card>
