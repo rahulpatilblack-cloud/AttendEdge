@@ -2,16 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Calendar, Clock, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, Search, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ProjectForm from '@/components/project/ProjectForm';
+import ProjectBulkImportModal from '@/components/project/ProjectBulkImportModal';
+import ProjectBulkUpdateModal from '@/components/project/ProjectBulkUpdateModal';
 import { Project } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/contexts/CompanyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from '@/components/ui/use-toast';
 
 /**
  * Safely parse YYYY-MM-DD without timezone shifts
@@ -25,7 +28,9 @@ const parseLocalDate = (dateStr?: string) => {
 };
 
 const ProjectsPage = () => {
-  const { projects, loading, error, fetchProjects, deleteProject, createProject, updateProject } = useProjects();
+  const { projects, loading, error, fetchProjects, deleteProject, createProject, updateProject, bulkImportProjects } = useProjects();
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const { currentCompany } = useCompany();
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,6 +48,35 @@ const ProjectsPage = () => {
   const handleNewProject = () => {
     setEditingProject(null);
     setIsDialogOpen(true);
+  };
+
+  const handleBulkImportComplete = (results: { success: number; failed: number }) => {
+    fetchProjects();
+    setIsBulkImportOpen(false);
+    
+    // Show success toast with import results
+    if (results.failed > 0) {
+      toast({
+        title: 'Import Completed with Issues',
+        description: `Successfully imported ${results.success} projects, ${results.failed} failed.`,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Import Successful',
+        description: `Successfully imported ${results.success} projects.`,
+        variant: 'default',
+      });
+    }
+  };
+
+  const handleBulkUpdateComplete = () => {
+    fetchProjects();
+    setIsBulkUpdateOpen(false);
+    toast({
+      title: 'Bulk Update Completed',
+      description: 'Project assignments have been updated successfully.',
+    });
   };
 
   const { data: projectMembers = [] } = useQuery({
@@ -129,10 +163,28 @@ const ProjectsPage = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
-        <Button onClick={handleNewProject}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setIsBulkUpdateOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Bulk Update
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setIsBulkImportOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Bulk Import
+          </Button>
+          <Button onClick={handleNewProject} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -223,6 +275,18 @@ const ProjectsPage = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <ProjectBulkImportModal
+        open={isBulkImportOpen}
+        onOpenChange={setIsBulkImportOpen}
+        onImportComplete={handleBulkImportComplete}
+      />
+      
+      <ProjectBulkUpdateModal
+        open={isBulkUpdateOpen}
+        onOpenChange={setIsBulkUpdateOpen}
+        onUpdateComplete={handleBulkUpdateComplete}
+      />
     </div>
   );
 };

@@ -37,15 +37,45 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const projectSchema = z.object({
+const createProjectSchema = z.object({
+  assignment_id: z.string().min(1, 'Assignment ID is required'),
   name: z.string().min(1, 'Project name is required'),
   description: z.string().optional(),
+  client_name: z.string().min(1, 'Client name is required'),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().optional().nullable(),
   status: z.enum(['active', 'on_hold', 'completed', 'cancelled']),
-  client_name: z.string().optional(),
+  end_client: z.string().min(1, 'End client is required'),
   allocation_percentage: z.number().min(1).max(100).default(100),
-});
+}).refine(
+  (data) => {
+    if (!data.end_date) return true;
+    return new Date(data.end_date) >= new Date(data.start_date);
+  },
+  {
+    message: 'End date must be after or equal to start date',
+    path: ['end_date'],
+  }
+);
+
+const editProjectSchema = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  description: z.string().optional(),
+  client_name: z.string().min(1, 'Client name is required'),
+  start_date: z.string().min(1, 'Start date is required'),
+  end_date: z.string().optional().nullable(),
+  status: z.enum(['active', 'on_hold', 'completed', 'cancelled']),
+  allocation_percentage: z.number().min(1).max(100).default(100),
+}).refine(
+  (data) => {
+    if (!data.end_date) return true;
+    return new Date(data.end_date) >= new Date(data.start_date);
+  },
+  {
+    message: 'End date must be after or equal to start date',
+    path: ['end_date'],
+  }
+);
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
 
@@ -74,7 +104,8 @@ interface ProjectFormProps {
     start_date: string;
     end_date: string | null;
     status: 'active' | 'on_hold' | 'completed' | 'cancelled';
-    client_name?: string;
+    client_name: string;
+    end_client?: string | null;
     allocation_percentage: number;
     members: Array<{
       consultant_id: string;
@@ -121,19 +152,45 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     return new Date(dateStr.split('T')[0]);
   };
 
+  // Check if we're in edit mode (project has an ID)
+  const isEditMode = !!project.id;
+
   // Initialize form with default values
   const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectSchema),
+    resolver: zodResolver(isEditMode ? editProjectSchema : createProjectSchema),
     defaultValues: {
       name: project.name || '',
       description: project.description || '',
-      start_date: project.start_date ? toLocalDateString(project.start_date) : toLocalDateString(new Date()),
-      end_date: project.end_date ? toLocalDateString(project.end_date) : '',
-      status: (project.status as any) || 'active',
       client_name: project.client_name || '',
+      start_date: project.start_date ? toLocalDateString(project.start_date) : toLocalDateString(new Date()),
+      end_date: project.end_date ? toLocalDateString(project.end_date) : null,
+      status: (project.status as any) || 'active',
       allocation_percentage: 100,
+      ...(!isEditMode && {
+        assignment_id: project.assignment_id || '',
+        end_client: project.end_client || ''
+      })
     },
   });
+
+  // Only watch for assignment_id and end_client in create mode
+  const assignmentId = form.watch('assignment_id');
+  const endClient = form.watch('end_client');
+
+  // Update project name when assignment_id or end_client changes (only in create mode)
+  useEffect(() => {
+    if (isEditMode) return;
+    
+    if (assignmentId && endClient) {
+      form.setValue('name', `${assignmentId} - ${endClient}`, { shouldValidate: true });
+    } else if (assignmentId) {
+      form.setValue('name', assignmentId, { shouldValidate: true });
+    } else if (endClient) {
+      form.setValue('name', endClient, { shouldValidate: true });
+    } else {
+      form.setValue('name', '', { shouldValidate: true });
+    }
+  }, [assignmentId, endClient, form, isEditMode]);
 
   // Fetch employees using shared hook (scoped to current company)
   const { employees, isLoading: isLoadingEmployees } = useEmployees();
@@ -178,14 +235,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
   // Handle form submission
   const handleFormSubmit = (data: ProjectFormValues) => {
-    // Use the date strings directly as they're already in YYYY-MM-DD format
     const projectData = {
       name: data.name,
       description: data.description,
+      client_name: data.client_name,
       start_date: data.start_date,
       end_date: data.end_date || null,
       status: data.status,
-      client_name: data.client_name,
+      end_client: data.end_client || null,
       allocation_percentage: data.allocation_percentage,
       members: selectedConsultants.map(consultant => ({
         consultant_id: consultant.id,
@@ -204,14 +261,59 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {!isEditMode && (
+            <>
+              <FormField
+                control={form.control}
+                name="assignment_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assignment ID *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter assignment ID" 
+                        {...field} 
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="end_client"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Client *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter end client name" 
+                        {...field} 
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Project Name</FormLabel>
+              <FormItem className={isEditMode ? "col-span-2" : "col-span-2"}>
+                <FormLabel>Project Name {!isEditMode && "(Auto-generated)"}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter project name" {...field} />
+                  <Input 
+                    placeholder={isEditMode ? "Enter project name" : "Project name will be generated automatically"}
+                    {...field} 
+                    readOnly={!isEditMode}
+                    className={isEditMode ? "" : "bg-gray-50"}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -223,14 +325,19 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             name="client_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Name</FormLabel>
+                <FormLabel>Client Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter client name" {...field} />
+                  <Input 
+                    placeholder="Enter client name" 
+                    {...field} 
+                    value={field.value || ''}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
 
           <FormField
             control={form.control}

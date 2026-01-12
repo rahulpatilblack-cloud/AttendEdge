@@ -27,12 +27,12 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ email, onSuccess, onCance
       const urlParams = new URLSearchParams(window.location.search);
       const tenant = urlParams.get('tenant') || 'attendedge';
       
-      // Construct the redirect URL with the correct parameters
-      // Use the production URL for password reset links to ensure consistency
-      const redirectUrl = `https://attendedge.netlify.app/reset-password?type=recovery`;
+      // Construct the redirect URL using the current origin to work in any environment
+      const baseUrl = window.location.origin;
+      const redirectUrl = `${baseUrl}/reset-password?type=recovery${tenant ? `&tenant=${tenant}` : ''}`;
       
       console.log('Sending password reset email to:', emailInput);
-      console.log('Redirect URL:', redirectUrl);
+      console.log('Using redirect URL:', redirectUrl);
       
       // Send the password reset email with options
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailInput, {

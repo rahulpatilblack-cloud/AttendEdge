@@ -1,0 +1,5 @@
+assignment_id,client_name,end_client,start_date,end_date,status,description,allocation_percentage
+PRJ-001,Acme Corp,Acme Manufacturing,2025-01-15,2025-12-31,active,Main project for Acme Manufacturing,100
+PRJ-002,Globex Inc,Globex Retail,2025-02-01,2025-06-30,active,Retail management system,80
+PRJ-003,Stark Industries,Stark Defense,2025-03-15,,on_old,Confidential project,50
+PRJ-004,Wayne Enterprises,Wayne Tech,2025-01-01,2025-12-31,active,Annual IT infrastructure upgrade,100

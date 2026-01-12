@@ -53,6 +53,7 @@ const HolidayManagement: React.FC = () => {
     description: '',
     is_recurring: false
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchHolidays = async () => {
     try {
@@ -75,6 +76,30 @@ const HolidayManagement: React.FC = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Holiday name is required';
+    }
+    
+    if (!formData.date) {
+      errors.date = 'Please select a date';
+    } else if (new Date(formData.date) < new Date(new Date().setHours(0, 0, 0, 0)) && !formData.is_recurring) {
+      errors.date = 'Cannot add holidays for past dates';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const checkForDuplicate = (date: string, name: string): boolean => {
+    return holidays.some(holiday => 
+      holiday.date === date && 
+      holiday.name.toLowerCase() === name.toLowerCase()
+    );
+  };
+
   const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -82,6 +107,19 @@ const HolidayManagement: React.FC = () => {
       toast({
         title: "Error",
         description: "Only admins and super admins can add holidays",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (checkForDuplicate(formData.date, formData.name)) {
+      toast({
+        title: "Error",
+        description: "A holiday with this name and date already exists",
         variant: "destructive"
       });
       return;
@@ -209,19 +247,104 @@ const HolidayManagement: React.FC = () => {
 
       
 
-      {/* Calendar View */}
-      {viewMode === 'calendar' && (
-        <>
+      {/* Add Holiday Form (shown in both views) */}
       {showAddForm && canManageHolidays && (
-            <Card className="border-2 border-blue-200 mb-4">
+        <Card className="border-2 border-blue-200 mb-6">
           <CardHeader>
-            <CardTitle>Add New Holiday</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Add New Holiday</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setShowAddForm(false);
+                  setFormData({ name: '', date: '', description: '', is_recurring: false });
+                  setFormErrors({});
+                }}
+              >
+                Cancel
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-                {/* ...form unchanged... */}
-              </CardContent>
-            </Card>
-          )}
+            <form onSubmit={handleAddHoliday} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="holiday-name">Holiday Name *</Label>
+                  <Input
+                    id="holiday-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g., New Year's Day"
+                    className={formErrors.name ? 'border-red-500' : ''}
+                  />
+                  {formErrors.name && <p className="text-sm text-red-500">{formErrors.name}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="holiday-date">Date *</Label>
+                  <Input
+                    id="holiday-date"
+                    type="date"
+                    value={formData.date}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className={formErrors.date ? 'border-red-500' : ''}
+                  />
+                  {formErrors.date && <p className="text-sm text-red-500">{formErrors.date}</p>}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="holiday-description">Description (Optional)</Label>
+                <Textarea
+                  id="holiday-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Add details about the holiday"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is-recurring"
+                  checked={formData.is_recurring}
+                  onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Label htmlFor="is-recurring" className="text-sm font-medium text-gray-700">
+                  This is a recurring holiday (e.g., annual)
+                </Label>
+              </div>
+              
+              <div className="flex justify-end pt-2">
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Holiday'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && (
           <Card className="w-full max-w-none min-h-[600px]">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -244,28 +367,29 @@ const HolidayManagement: React.FC = () => {
               </div>
           </CardContent>
         </Card>
-        </>
       )}
 
       {/* List View */}
       {viewMode === 'list' && (
-        <>
-          {showAddForm && canManageHolidays && (
-            <Card className="border-2 border-blue-200 mb-4">
-              <CardHeader>
-                <CardTitle>Add New Holiday</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* ...form unchanged... */}
-              </CardContent>
-            </Card>
-          )}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-                <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
-            Holidays ({holidays.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
+              Holidays ({holidays.length})
+            </CardTitle>
+            {!showAddForm && canManageHolidays && (
+              <Button 
+                onClick={() => setShowAddForm(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add Holiday
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -347,7 +471,6 @@ const HolidayManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
-        </>
       )}
     </div>
   );

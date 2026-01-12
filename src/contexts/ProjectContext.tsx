@@ -11,6 +11,7 @@ interface ProjectContextType {
   createProject: (project: Partial<Project>) => Promise<Project>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
+  bulkImportProjects: (formData: FormData) => Promise<void>;
   addTeamMember: (projectId: string, member: Partial<ProjectMember>) => Promise<void>;
   updateTeamMember: (projectId: string, memberId: string, updates: Partial<ProjectMember>) => Promise<void>;
   removeTeamMember: (projectId: string, memberId: string) => Promise<void>;
@@ -506,6 +507,53 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // Bulk import projects from CSV
+  const bulkImportProjects = async (formData: FormData) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Upload the file to Supabase Storage
+      const file = formData.get('file') as File;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `import-${Date.now()}.${fileExt}`;
+      const filePath = `temp/${fileName}`;
+      
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('imports')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Call the serverless function to process the file
+      const { data, error: processError } = await supabase.functions.invoke('process-projects-import', {
+        body: { filePath }
+      });
+      
+      if (processError) throw processError;
+      
+      // Refresh the projects list
+      await fetchProjects();
+      
+      // Delete the temporary file
+      await supabase.storage
+        .from('imports')
+        .remove([filePath]);
+      
+      return data;
+    } catch (err) {
+      console.error('Error during bulk import:', err);
+      setError(err instanceof Error ? err.message : 'Failed to import projects');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Initial data fetch
   useEffect(() => {
     fetchProjects();
@@ -521,6 +569,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     createProject,
     updateProject,
     deleteProject,
+    bulkImportProjects,
     addTeamMember,
     updateTeamMember,
     removeTeamMember,
@@ -542,6 +591,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     createProject,
     updateProject,
     deleteProject,
+    bulkImportProjects,
     addTeamMember,
     updateTeamMember,
     removeTeamMember,
