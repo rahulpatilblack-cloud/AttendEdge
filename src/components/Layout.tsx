@@ -177,6 +177,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       roles: ['employee', 'reporting_manager']
     },
     {
+  id: 'project-allocations',
+  label: 'Project Allocations',
+  icon: FileSpreadsheet,
+  roles: ['admin', 'super_admin'],
+  requiresPermission: true
+},
+    {
       id: 'manage-projects',
       label: 'Manage Consultant Projects',
       icon: Briefcase,
@@ -549,6 +556,59 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                 </div>
               </div>
 
+              {/* Project Leave Hours System retractable menu */}
+              <div>
+                  <button
+                    className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)] mt-2"
+                    onClick={() => toggleSection('project-leave-hours-system')}
+                    aria-expanded={isSectionOpen('project-leave-hours-system')}
+                    aria-controls="project-leave-hours-system-menu"
+                  >
+                    <FileSpreadsheet className="w-5 h-5" />
+                    <span>Project Leave Hours System</span>
+                    {isSectionOpen('project-leave-hours-system') ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </button>
+                  <div
+                    id="project-leave-hours-system-menu"
+                    className={`pl-6 mt-1 space-y-1 overflow-hidden transition-all duration-300 ease-in-out ${
+                      isSectionOpen('project-leave-hours-system') ? 'max-h-96 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2'
+                    }`}
+                    style={{ willChange: 'max-height, opacity, transform' }}
+                  >
+                    {!['admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('my-project-leave-status')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'my-project-leave-status' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <FileSpreadsheet className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">My Project Leave Status</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => onTabChange('project-allocations')}
+                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                        activeTab === 'project-allocations' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-5 h-5" />
+                      <span className="sidebar-label text-sm">Project Allocations</span>
+                    </button>
+
+                    <button
+                      onClick={() => onTabChange('mark-project-leave-hours')}
+                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                        activeTab === 'mark-project-leave-hours' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                      }`}
+                    >
+                      <CalendarPlus className="w-5 h-5" />
+                      <span className="sidebar-label text-sm">Mark Project Leave</span>
+                    </button>
+                  </div>
+              </div>
+
               {/* Management retractable menu */}
               {['admin', 'super_admin', 'reporting_manager'].includes(user?.role) && (
                 <>
@@ -672,6 +732,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                 'settings',           // In Management section
                 'session-settings',   // In Management section
                 'my-projects',        // In Leave Management section
+                'project-allocations', // In Leave Management section
                 'manage-projects',    // In Leave Management section
                 'project-leave',      // In Leave Management section
                 'manage-project-leave', // In Leave Management section

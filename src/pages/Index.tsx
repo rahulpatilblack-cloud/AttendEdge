@@ -25,6 +25,9 @@ import ProjectLeaveManagement from '@/components/project/ProjectLeaveManagement'
 import ProjectLeaveReports from '@/components/project/ProjectLeaveReports';
 import ProjectHolidaysManagement from '@/components/project/ProjectHolidaysManagement';
 import ProjectTeamManagement from '@/components/project/ProjectTeamManagement';
+import ProjectAllocations from '@/components/leaves/ProjectAllocations';
+import MarkProjectLeave from '@/components/leaves/MarkProjectLeave';
+import MyProjectLeaveStatus from '@/components/leaves/MyProjectLeaveStatus';
 import ProjectsPage from '@/pages/ProjectsPage';
 import ProjectFormPage from '@/pages/ProjectFormPage';
 import ProjectDetail from '@/components/project/ProjectDetail';
@@ -137,6 +140,42 @@ const Index = () => {
         return <ProjectLeaveReports />;
       case 'project-team-management':
         return <ProjectTeamManagement />;
+
+      case 'project-allocations':
+        // Only admins and super admins can access project leave budgets
+        if (['admin', 'super_admin'].includes(user.role)) {
+          return <ProjectAllocations />;
+        }
+        return (
+          <div className="glass-effect rounded-2xl p-8 border text-center">
+            <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to access this section</p>
+          </div>
+        );
+
+      case 'mark-project-leave-hours':
+        // Only admins and super admins can mark project leave hours
+        if (['admin', 'super_admin'].includes(user.role)) {
+          return <MarkProjectLeave />;
+        }
+        return (
+          <div className="glass-effect rounded-2xl p-8 border text-center">
+            <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to access this section</p>
+          </div>
+        );
+
+      case 'my-project-leave-status':
+        // Consultants/employees can view their project-wise leave status
+        if (!['admin', 'super_admin'].includes(user.role)) {
+          return <MyProjectLeaveStatus />;
+        }
+        return (
+          <div className="glass-effect rounded-2xl p-8 border text-center">
+            <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+            <p className="text-gray-600">This section is only available for non-admin users</p>
+          </div>
+        );
         
       case 'teams':
         // Admins, super admins, and reporting managers can access team management
