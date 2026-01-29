@@ -587,25 +587,29 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                       </button>
                     )}
 
-                    <button
-                      onClick={() => onTabChange('project-allocations')}
-                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                        activeTab === 'project-allocations' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                      }`}
-                    >
-                      <FileSpreadsheet className="w-5 h-5" />
-                      <span className="sidebar-label text-sm">Project Allocations</span>
-                    </button>
+                    {['admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('project-allocations')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'project-allocations' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <FileSpreadsheet className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">Project Allocations</span>
+                      </button>
+                    )}
 
-                    <button
-                      onClick={() => onTabChange('mark-project-leave-hours')}
-                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                        activeTab === 'mark-project-leave-hours' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                      }`}
-                    >
-                      <CalendarPlus className="w-5 h-5" />
-                      <span className="sidebar-label text-sm">Mark Project Leave</span>
-                    </button>
+                    {['admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('mark-project-leave-hours')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'mark-project-leave-hours' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <CalendarPlus className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">Mark Project Leave</span>
+                      </button>
+                    )}
                   </div>
               </div>
 
