@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Calendar, Clock, Search, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, Search, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import ProjectForm from '@/components/project/ProjectForm';
 import ProjectBulkImportModal from '@/components/project/ProjectBulkImportModal';
 import ProjectBulkUpdateModal from '@/components/project/ProjectBulkUpdateModal';
@@ -36,6 +41,14 @@ const ProjectsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState<'all' | Project['status']>('all');
+  const [projectSearch, setProjectSearch] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [consultantId, setConsultantId] = useState<string>('all');
+  const [consultantOpen, setConsultantOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
@@ -50,24 +63,9 @@ const ProjectsPage = () => {
     setIsDialogOpen(true);
   };
 
-  const handleBulkImportComplete = (results: { success: number; failed: number }) => {
+  const handleBulkImportClosed = () => {
     fetchProjects();
     setIsBulkImportOpen(false);
-    
-    // Show success toast with import results
-    if (results.failed > 0) {
-      toast({
-        title: 'Import Completed with Issues',
-        description: `Successfully imported ${results.success} projects, ${results.failed} failed.`,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Import Successful',
-        description: `Successfully imported ${results.success} projects.`,
-        variant: 'default',
-      });
-    }
   };
 
   const handleBulkUpdateComplete = () => {
@@ -79,11 +77,25 @@ const ProjectsPage = () => {
     });
   };
 
-  const { data: projectMembers = [] } = useQuery({
+  const { data: employees = [] } = useQuery<any[]>({
+    queryKey: ['employees', currentCompany?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, name, email')
+        .eq('company_id', currentCompany!.id)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!currentCompany?.id,
+  });
+
+  const { data: projectMembers = [] } = useQuery<any[]>({
     queryKey: ['projectMembers', editingProject?.id],
     queryFn: async () => {
       if (!editingProject?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('consultant_projects')
         .select('*')
         .eq('project_id', editingProject.id);
@@ -114,6 +126,76 @@ const ProjectsPage = () => {
     }
   };
 
+  const selectedConsultant = useMemo(() => {
+    if (consultantId === 'all') return null;
+    return employees.find(e => e.id === consultantId) || null;
+  }, [consultantId, employees]);
+
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter(p => {
+      const matchesStatus = statusFilter === 'all' ? true : p.status === statusFilter;
+
+      const search = projectSearch.trim().toLowerCase();
+      const client = clientSearch.trim().toLowerCase();
+
+      const matchesProjectSearch = !search
+        ? true
+        : `${p.name ?? ''} ${p.description ?? ''}`.toLowerCase().includes(search);
+
+      const matchesClientSearch = !client
+        ? true
+        : `${(p as any).client_name ?? ''}`.toLowerCase().includes(client);
+
+      // Filter by consultant if selected
+      let matchesConsultant = true;
+      if (consultantId !== 'all') {
+        matchesConsultant = (p as any).members?.some((m: any) => m.consultant_id === consultantId || m.user_id === consultantId);
+      }
+
+      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant;
+    });
+
+    // Apply pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return result.slice(startIndex, endIndex);
+  }, [projects, statusFilter, projectSearch, clientSearch, consultantId, page, pageSize]);
+
+  const totalFilteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchesStatus = statusFilter === 'all' ? true : p.status === statusFilter;
+
+      const search = projectSearch.trim().toLowerCase();
+      const client = clientSearch.trim().toLowerCase();
+
+      const matchesProjectSearch = !search
+        ? true
+        : `${p.name ?? ''} ${p.description ?? ''}`.toLowerCase().includes(search);
+
+      const matchesClientSearch = !client
+        ? true
+        : `${(p as any).client_name ?? ''}`.toLowerCase().includes(client);
+
+      // Filter by consultant if selected
+      let matchesConsultant = true;
+      if (consultantId !== 'all') {
+        matchesConsultant = (p as any).members?.some((m: any) => m.consultant_id === consultantId || m.user_id === consultantId);
+      }
+
+      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant;
+    });
+  }, [projects, statusFilter, projectSearch, clientSearch, consultantId]);
+
+  const totalPages = Math.ceil(totalFilteredProjects.length / pageSize);
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setProjectSearch('');
+    setClientSearch('');
+    setConsultantId('all');
+    setPage(1);
+  };
+
   const handleAssignConsultant = async (proj: Project, consultantId: string) => {
     try {
       await updateProject(proj.id as string, {
@@ -123,7 +205,7 @@ const ProjectsPage = () => {
         client_name: (proj as any).client_name,
         members: [
           {
-            consultant_id: consultantId,
+            user_id: consultantId,
             role: 'member',
             allocation_percentage: 100,
             start_date: new Date().toISOString(),
@@ -161,94 +243,241 @@ const ProjectsPage = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Projects</h1>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => setIsBulkUpdateOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Bulk Update
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setIsBulkImportOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Bulk Import
-          </Button>
-          <Button onClick={handleNewProject} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-      </div>
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <CardTitle>Projects</CardTitle>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBulkUpdateOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Bulk Update
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBulkImportOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Bulk Import
+                </Button>
+                <Button onClick={handleNewProject} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
 
-      <div className="grid gap-4">
-        {projects.map(project => {
-          const start = parseLocalDate(project.start_date);
-          const end = parseLocalDate(project.end_date);
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Project List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredProjects.length} of {totalFilteredProjects.length} projects
+                </div>
+              </div>
 
-          return (
-            <div
-              key={project.id}
-              className="bg-white border rounded-lg hover:shadow-md transition-shadow"
-            >
-              <div className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold">{project.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {project.description}
-                    </p>
+              <div className="grid grid-cols-1 md:grid-cols-8 gap-3">
+                <div className="md:col-span-2">
+                  <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
+                        {selectedConsultant ? `${selectedConsultant.name} (${selectedConsultant.email})` : 'All Consultants'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search consultant..." />
+                        <CommandList>
+                          <CommandEmpty>No consultant found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="all"
+                              onSelect={() => {
+                                setConsultantId('all');
+                                setConsultantOpen(false);
+                                setPage(1);
+                              }}
+                            >
+                              <Check className={consultantId === 'all' ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
+                              All Consultants
+                            </CommandItem>
+                            {employees.map(e => (
+                              <CommandItem
+                                key={e.id}
+                                value={`${e.name} ${e.email}`}
+                                onSelect={() => {
+                                  setConsultantId(e.id);
+                                  setConsultantOpen(false);
+                                  setPage(1);
+                                }}
+                              >
+                                <Check className={consultantId === e.id ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
+                                {e.name} ({e.email})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                    <div className="flex items-center mt-3 text-sm text-gray-500">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span className="mr-4">
-                        {start ? format(start, 'PPP') : '-'} –{' '}
-                        {end ? format(end, 'PPP') : 'Ongoing'}
-                      </span>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          project.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : project.status === 'completed'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {project.status.charAt(0).toUpperCase() +
-                          project.status.slice(1)}
-                      </span>
+                <Select value={statusFilter} onValueChange={v => { setStatusFilter(v as any); setPage(1); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  placeholder="Search project"
+                  value={projectSearch}
+                  onChange={e => { setProjectSearch(e.target.value); setPage(1); }}
+                />
+                <Input
+                  placeholder="Search client"
+                  value={clientSearch}
+                  onChange={e => { setClientSearch(e.target.value); setPage(1); }}
+                />
+
+                <Select value={pageSize.toString()} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 per page</SelectItem>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="20">20 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="md:col-span-2 flex gap-2 items-center">
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+              {filteredProjects.map(project => {
+                const start = parseLocalDate(project.start_date);
+                const end = parseLocalDate(project.end_date);
+
+                return (
+                  <div
+                    key={project.id}
+                    className="bg-white border rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <div className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-semibold">{project.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {project.description}
+                          </p>
+
+                          <div className="flex items-center mt-3 text-sm text-gray-500">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span className="mr-4">
+                              {start ? format(start, 'PPP') : '-'} –{' '}
+                              {end ? format(end, 'PPP') : 'Ongoing'}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                project.status === 'active'
+                                  ? 'bg-green-100 text-green-800'
+                                  : project.status === 'completed'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {project.status.charAt(0).toUpperCase() +
+                                project.status.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(project)}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(project.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+              {filteredProjects.length === 0 && totalFilteredProjects.length > 0 && (
+                <div className="rounded-md border p-6 text-center text-muted-foreground">
+                  No projects on this page
+                </div>
+              )}
+              {filteredProjects.length === 0 && totalFilteredProjects.length === 0 && (
+                <div className="rounded-md border p-6 text-center text-muted-foreground">
+                  No projects found
+                </div>
+              )}
 
-                  <div className="flex space-x-2">
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </div>
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEdit(project)}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
                     >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(project.id)}
-                      className="text-red-600"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          );
-        })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -279,7 +508,7 @@ const ProjectsPage = () => {
       <ProjectBulkImportModal
         open={isBulkImportOpen}
         onOpenChange={setIsBulkImportOpen}
-        onImportComplete={handleBulkImportComplete}
+        onImportComplete={handleBulkImportClosed}
       />
       
       <ProjectBulkUpdateModal

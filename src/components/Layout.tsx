@@ -210,6 +210,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       roles: ['reporting_manager', 'admin', 'super_admin'],
       requiresPermission: true
     },
+    {
+      id: 'leave-report-hr',
+      label: 'Leave Report (hr)',
+      icon: BarChart3,
+      roles: ['reporting_manager', 'admin', 'super_admin'],
+      requiresPermission: true
+    },
     // Settings moved to Management section
   ].filter(item => item.id !== 'dummy-attendance' && item.id !== 'company-profile' && item.id !== 'leave-type-management');
 
@@ -498,17 +505,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                       <span className="sidebar-label text-sm">My Projects</span>
                     </button>
                   )}
-                  {['admin', 'super_admin'].includes(user?.role) && (
-                    <button
-                      onClick={() => onTabChange('manage-projects')}
-                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                        activeTab === 'manage-projects' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                      }`}
-                    >
-                      <Briefcase className="w-5 h-5" />
-                      <span className="sidebar-label text-sm">Manage Consultant Projects</span>
-                    </button>
-                  )}
                   {!['admin', 'super_admin'].includes(user?.role) && (
                     <button
                       onClick={() => onTabChange('project-leave')}
@@ -542,21 +538,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         <BarChart3 className="w-5 h-5" />
                         <span className="sidebar-label text-sm">Consultant Leave Reports</span>
                       </button>
-                      <button
-                        onClick={() => onTabChange('project-team-management')}
-                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
-                          activeTab === 'project-team-management' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
-                        }`}
-                      >
-                        <Users className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Consultant Management</span>
-                      </button>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Project Leave Hours System retractable menu */}
+              {/* Leave Management (hr) retractable menu */}
               <div>
                   <button
                     className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)] mt-2"
@@ -565,7 +552,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                     aria-controls="project-leave-hours-system-menu"
                   >
                     <FileSpreadsheet className="w-5 h-5" />
-                    <span>Project Leave Hours System</span>
+                    <span>Leave Management (hr)</span>
                     {isSectionOpen('project-leave-hours-system') ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
                   </button>
                   <div
@@ -584,6 +571,30 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                       >
                         <FileSpreadsheet className="w-5 h-5" />
                         <span className="sidebar-label text-sm">My Project Leave Status</span>
+                      </button>
+                    )}
+
+                    {['admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('manage-projects')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'manage-projects' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <Briefcase className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">Manage Consultant Projects</span>
+                      </button>
+                    )}
+
+                    {['reporting_manager', 'admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('project-team-management')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'project-team-management' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <Users className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">Consultant Management</span>
                       </button>
                     )}
 
@@ -608,6 +619,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                       >
                         <CalendarPlus className="w-5 h-5" />
                         <span className="sidebar-label text-sm">Mark Project Leave</span>
+                      </button>
+                    )}
+
+                    {['reporting_manager', 'admin', 'super_admin'].includes(user?.role) && (
+                      <button
+                        onClick={() => onTabChange('leave-report-hr')}
+                        className={`w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left transition-colors sidebar-nav-btn ${
+                          activeTab === 'leave-report-hr' ? 'border-l-4 border-primary bg-[rgba(0,0,0,0.04)] font-semibold' : 'hover:bg-[rgba(0,0,0,0.02)]'
+                        }`}
+                      >
+                        <BarChart3 className="w-5 h-5" />
+                        <span className="sidebar-label text-sm">Leave Report (hr)</span>
                       </button>
                     )}
                   </div>
@@ -741,6 +764,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                 'project-leave',      // In Leave Management section
                 'manage-project-leave', // In Leave Management section
 'project-reports',    // In Leave Management section
+                'leave-report-hr',    // In Leave Management (hr) section
                 'project-team-management' // In Leave Management section
               ].includes(item.id)).map((item) => {
                 const Icon = item.icon;

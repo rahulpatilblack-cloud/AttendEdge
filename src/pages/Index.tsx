@@ -28,6 +28,7 @@ import ProjectTeamManagement from '@/components/project/ProjectTeamManagement';
 import ProjectAllocations from '@/components/leaves/ProjectAllocations';
 import MarkProjectLeave from '@/components/leaves/MarkProjectLeave';
 import MyProjectLeaveStatus from '@/components/leaves/MyProjectLeaveStatus';
+import LeaveReportHr from '@/components/leaves/LeaveReportHr';
 import ProjectsPage from '@/pages/ProjectsPage';
 import ProjectFormPage from '@/pages/ProjectFormPage';
 import ProjectDetail from '@/components/project/ProjectDetail';
@@ -140,6 +141,18 @@ const Index = () => {
         return <ProjectLeaveReports />;
       case 'project-team-management':
         return <ProjectTeamManagement />;
+
+      case 'leave-report-hr':
+        // Hour-based leave report (project_leaves)
+        if (['admin', 'super_admin', 'reporting_manager'].includes(user.role)) {
+          return <LeaveReportHr />;
+        }
+        return (
+          <div className="glass-effect rounded-2xl p-8 border text-center">
+            <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to access this section</p>
+          </div>
+        );
 
       case 'project-allocations':
         // Only admins and super admins can access project leave budgets

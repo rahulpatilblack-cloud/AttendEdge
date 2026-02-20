@@ -232,31 +232,65 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // If members are provided, update them in the consultant_projects table
       if (members) {
-        // First, remove all existing consultant assignments for this project
-        const { error: deleteError } = await supabase
+        const { data: existingAssignments, error: existingError } = await supabase
           .from('consultant_projects')
-          .delete()
+          .select('id, consultant_id, allocated_hours, allocated_leave_hours')
           .eq('project_id', id);
 
-        if (deleteError) throw deleteError;
+        if (existingError) throw existingError;
 
-        // Then add the updated consultant assignments
-        if (members.length > 0) {
-          const consultantAssignments = members.map((member: any) => ({
-            consultant_id: member.consultant_id,
-            project_id: id,
-            role: member.role || 'member',
-            allocation_percentage: member.allocation_percentage || 100,
-            start_date: member.start_date || new Date().toISOString(),
-            end_date: member.end_date || null,
-            status: 'active',
-          }));
+        const normalizedMembers = (Array.isArray(members) ? members : [])
+          .map((m: any) => {
+            const consultantId = m?.consultant_id ?? m?.user_id;
+            if (!consultantId) return null;
+            return {
+              consultant_id: consultantId,
+              project_id: id,
+              role: m?.role || 'member',
+              allocation_percentage: m?.allocation_percentage || 100,
+              start_date: m?.start_date || new Date().toISOString(),
+              end_date: m?.end_date || null,
+              status: 'active',
+            };
+          })
+          .filter(Boolean);
 
-          const { error: membersError } = await supabase
+        const existingByConsultantId = new Map<string, any>();
+        (existingAssignments || []).forEach(a => existingByConsultantId.set(a.consultant_id, a));
+
+        const keepConsultantIds = new Set<string>(normalizedMembers.map((m: any) => m.consultant_id));
+        const toRemove = (existingAssignments || []).filter(a => !keepConsultantIds.has(a.consultant_id));
+
+        if (toRemove.length > 0) {
+          const { error: removeError } = await supabase
             .from('consultant_projects')
-            .insert(consultantAssignments);
+            .delete()
+            .in('id', toRemove.map(a => a.id));
+          if (removeError) throw removeError;
+        }
 
-          if (membersError) throw membersError;
+        for (const m of normalizedMembers as any[]) {
+          const existing = existingByConsultantId.get(m.consultant_id);
+
+          if (existing?.id) {
+            const { error: updateMemberError } = await supabase
+              .from('consultant_projects')
+              .update({
+                role: m.role,
+                allocation_percentage: m.allocation_percentage,
+                start_date: m.start_date,
+                end_date: m.end_date,
+                status: m.status,
+                updated_at: now,
+              })
+              .eq('id', existing.id);
+            if (updateMemberError) throw updateMemberError;
+          } else {
+            const { error: insertMemberError } = await supabase
+              .from('consultant_projects')
+              .insert([{ ...m, created_at: now, updated_at: now }]);
+            if (insertMemberError) throw insertMemberError;
+          }
         }
       }
 

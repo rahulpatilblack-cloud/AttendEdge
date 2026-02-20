@@ -43,6 +43,12 @@ const ProfileManagement: React.FC = () => {
       setError(null);
     }
   }, [employeesError]);
+
+  // Call fetchEmployees only once on mount to avoid infinite loop
+  useEffect(() => {
+    fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Calculate statistics with error handling
   const stats = useMemo<EmployeeStats>(() => {
@@ -126,12 +132,6 @@ const ProfileManagement: React.FC = () => {
       </div>
     );
   }
-
-  // Call fetchEmployees only once on mount to avoid infinite loop
-  useEffect(() => {
-    fetchEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="p-6 space-y-6">
