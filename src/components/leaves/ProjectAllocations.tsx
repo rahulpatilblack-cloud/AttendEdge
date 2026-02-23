@@ -212,7 +212,7 @@ export default function ProjectAllocations() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Allocations</CardTitle>
+          <CardTitle>Leave Allocations</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

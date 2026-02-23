@@ -4,12 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search, Filter, Check } from 'lucide-react';
+import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search, Filter, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import EditEmployeeForm from './EditEmployeeForm';
 import {
   AlertDialog,
@@ -71,7 +72,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
+  
+  // Searchable combobox state
+  const [consultantOpen, setConsultantOpen] = useState(false);
+  const [consultantId, setConsultantId] = useState('all');
 
   // Get unique departments and roles for filter options
   const departments = useMemo(() => {
@@ -84,17 +88,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
     return Array.from(roleSet).sort();
   }, [employees]);
 
-  // Create consultant options for searchable combobox
-  const consultantOptions = useMemo(() => {
-    return employees.map(emp => ({
-      value: emp.id,
-      label: emp.name,
-      email: emp.email,
-      department: emp.department,
-      position: emp.position,
-      role: emp.role
-    }));
-  }, [employees]);
+  const selectedConsultant = useMemo(() => {
+    if (consultantId === 'all') return null;
+    return employees.find(e => e.id === consultantId) || null;
+  }, [consultantId, employees]);
 
   // Filter employees
   const filteredEmployees = useMemo(() => {
@@ -117,9 +114,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
         (statusFilter === 'active' && employee.is_active) ||
         (statusFilter === 'inactive' && !employee.is_active);
 
-      return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
+      // Consultant filter (from searchable combobox)
+      const matchesConsultant = !selectedConsultant || employee.id === selectedConsultant.id;
+
+      return matchesSearch && matchesRole && matchesDepartment && matchesStatus && matchesConsultant;
     });
-  }, [employees, searchTerm, roleFilter, departmentFilter, statusFilter]);
+  }, [employees, searchTerm, roleFilter, departmentFilter, statusFilter, selectedConsultant]);
 
   const totalPages = Math.ceil(filteredEmployees.length / pageSize);
   const paginatedEmployees = useMemo(() => {
@@ -140,7 +140,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, roleFilter, departmentFilter, statusFilter]);
+  }, [searchTerm, roleFilter, departmentFilter, statusFilter, consultantId]);
 
   const toTitleCase = (str: string) => {
     if (!str) return '';
@@ -413,58 +413,48 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Search Filter */}
+              {/* Consultant Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Search</label>
-                <Popover open={searchPopoverOpen} onOpenChange={setSearchPopoverOpen}>
+                <label className="text-sm font-medium text-gray-700">Consultant</label>
+                <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between text-left font-normal"
-                    >
-                      {searchTerm ? (
-                        consultantOptions.find(emp => emp.label.toLowerCase().includes(searchTerm.toLowerCase()))?.label || searchTerm
-                      ) : (
-                        "Search consultants..."
-                      )}
-                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    <Button variant="outline" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
+                      {selectedConsultant ? `${selectedConsultant.name} (${selectedConsultant.email})` : 'All Consultants'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
-                      <CommandInput 
-                        placeholder="Search consultants..." 
-                        value={searchTerm}
-                        onValueChange={setSearchTerm}
-                      />
-                      <CommandEmpty>No consultant found.</CommandEmpty>
-                      <CommandGroup>
-                        {consultantOptions.map((consultant) => (
-                          <CommandItem
-                            key={consultant.value}
-                            value={consultant.label}
-                            onSelect={() => {
-                              setSearchTerm(consultant.label);
-                              setSearchPopoverOpen(false);
-                            }}
-                          >
+                      <CommandInput placeholder="Search consultant..." />
+                      <CommandList>
+                        <CommandEmpty>No consultant found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem value="all" onSelect={() => { setConsultantId('all'); setConsultantOpen(false); }}>
                             <Check
-                              className={`mr-2 h-4 w-4 ${
-                                consultant.label.toLowerCase().includes(searchTerm.toLowerCase())
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              }`}
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                consultantId === "all" ? "opacity-100" : "opacity-0"
+                              )}
                             />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{consultant.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {consultant.email} • {consultant.department || 'No department'}
-                              </span>
-                            </div>
+                            All Consultants
                           </CommandItem>
-                        ))}
-                      </CommandGroup>
+                          {employees.map((employee) => (
+                            <CommandItem
+                              key={employee.id}
+                              value={`${employee.name} ${employee.email}`}
+                              onSelect={() => { setConsultantId(employee.id); setConsultantOpen(false); }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  consultantId === employee.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {employee.name} ({employee.email})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -523,7 +513,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
             </div>
 
             {/* Filter Summary */}
-            {(searchTerm || roleFilter !== 'all' || departmentFilter !== 'all' || statusFilter !== 'all') && (
+            {(searchTerm || roleFilter !== 'all' || departmentFilter !== 'all' || statusFilter !== 'all' || consultantId !== 'all') && (
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                 <span className="text-sm text-blue-800">
                   {filteredEmployees.length} of {employees.length} consultants match filters
@@ -536,6 +526,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                     setRoleFilter('all');
                     setDepartmentFilter('all');
                     setStatusFilter('all');
+                    setConsultantId('all');
                   }}
                 >
                   Clear Filters

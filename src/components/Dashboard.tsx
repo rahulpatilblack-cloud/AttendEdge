@@ -466,7 +466,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full">
               <Button variant="gradient" onClick={() => onNavigate?.('manage-projects')}>
                 <Briefcase className="w-4 h-4 mr-2" />
-                Manage Consultant Projects
+                Project Directory
               </Button>
               <Button variant="gradient" onClick={() => onNavigate?.('manage-project-leave')}>
                 <CalendarCheck className="w-4 h-4 mr-2" />

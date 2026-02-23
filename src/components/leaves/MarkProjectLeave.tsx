@@ -225,6 +225,15 @@ export default function MarkProjectLeave() {
       return;
     }
 
+    if (leaveType === 'partial' && partialHours > 8) {
+      toast({
+        title: 'Error',
+        description: 'Partial leave hours cannot exceed 8 hours per day',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -386,12 +395,20 @@ export default function MarkProjectLeave() {
               <Input
                 type="number"
                 min="0.25"
+                max="8"
                 step="0.25"
                 value={leaveType === 'partial' ? partialHours : computedHours}
-                onChange={e => setPartialHours(Number(e.target.value))}
+                onChange={e => {
+                  const value = Number(e.target.value);
+                  if (value <= 8) {
+                    setPartialHours(value);
+                  }
+                }}
                 disabled={leaveType !== 'partial'}
               />
-              <div className="text-xs text-muted-foreground">Computed: {computedHours} hrs</div>
+              <div className="text-xs text-muted-foreground">
+                {leaveType === 'partial' ? `Custom hours (max 8 hrs per day)` : `Computed: ${computedHours} hrs`}
+              </div>
             </div>
 
             <div className="md:col-span-2 space-y-2">

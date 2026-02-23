@@ -178,14 +178,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
     },
     {
   id: 'project-allocations',
-  label: 'Project Allocations',
+  label: 'Project Leave Allocations',
   icon: FileSpreadsheet,
   roles: ['admin', 'super_admin'],
   requiresPermission: true
 },
     {
       id: 'manage-projects',
-      label: 'Manage Consultant Projects',
+      label: 'Project Directory',
       icon: Briefcase,
       roles: ['admin', 'super_admin'],
       requiresPermission: true
@@ -597,7 +597,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         }`}
                       >
                         <Briefcase className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Manage Consultant Projects</span>
+                        <span className="sidebar-label text-sm">Project Directory</span>
                       </button>
                     )}
 
@@ -621,7 +621,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         }`}
                       >
                         <FileSpreadsheet className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Project Allocations</span>
+                        <span className="sidebar-label text-sm">Project Leave Allocations</span>
                       </button>
                     )}
 
