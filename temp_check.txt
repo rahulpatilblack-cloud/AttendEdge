@@ -1,15 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import EditEmployeeForm from './EditEmployeeForm';
 import {
   AlertDialog,
@@ -60,15 +57,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const { user } = useAuth();
   const { currentCompany } = useCompany();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedConsultant, setSelectedConsultant] = useState<Employee | null>(null);
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const toTitleCase = (str: string) => {
     if (!str) return '';
@@ -112,7 +105,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const fetchEmployees = React.useCallback(async () => {
     if (!currentCompany) {
       setEmployees([]);
-      setAllEmployees([]);
       setIsLoading(false);
       return;
     }
@@ -134,7 +126,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
       }
 
       console.log('Employees fetched successfully');
-      setAllEmployees(employees || []);
+      setEmployees(employees || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     } finally {
@@ -142,9 +134,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
     }
   }, [currentCompany]);
   
+  // Fetch employees on mount and when refreshTrigger changes
   useEffect(() => {
     const controller = new AbortController();
     
+    // Only fetch if we have a current company
     if (currentCompany) {
       fetchEmployees();
     }
@@ -154,44 +148,23 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
     };
   }, [currentCompany, fetchEmployees, refreshTrigger]);
 
-  // Filter employees based on search term
-  const filteredEmployees = useMemo(() => {
-    if (!searchTerm) return allEmployees;
-    
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return allEmployees.filter(employee => 
-      employee.name.toLowerCase().includes(lowerSearchTerm) ||
-      employee.email.toLowerCase().includes(lowerSearchTerm) ||
-      (employee.department && employee.department.toLowerCase().includes(lowerSearchTerm)) ||
-      (employee.position && employee.position.toLowerCase().includes(lowerSearchTerm))
-    );
-  }, [allEmployees, searchTerm]);
-
-  const paginatedEmployees = useMemo(() => {
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredEmployees.slice(startIndex, endIndex);
-  }, [filteredEmployees, page, pageSize]);
-
-  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
-
   const canRemoveEmployee = (employee: Employee) => {
     if (!user) return false;
-    if (employee.id === user.id) return false;
-    if (user.role === 'admin' && employee.role === 'super_admin') return false;
-    if (user.role === 'admin' && employee.role === 'admin') return false;
-    return ['admin', 'super_admin'].includes(user.role);
+    if (employee.id === user.id) return false; // Can't remove self
+    if (user.role === 'admin' && employee.role === 'super_admin') return false; // Admin can't remove super admin
+    if (user.role === 'admin' && employee.role === 'admin') return false; // Admin can't remove other admins
+    return ['admin', 'super_admin'].includes(user.role); // Only admins and super admins can remove
   };
 
   const canEditEmployee = (employee: Employee) => {
     if (!user) return false;
-    if (employee.id === user.id) return false;
-    if (user.role === 'admin' && employee.role === 'super_admin') return false;
-    return ['admin', 'super_admin'].includes(user.role);
+    if (employee.id === user.id) return false; // Can't edit self (should have a separate profile edit)
+    if (user.role === 'admin' && employee.role === 'super_admin') return false; // Admin can't edit super admin
+    return ['admin', 'super_admin'].includes(user.role); // Only admins and super admins can edit
   };
 
   const handleRemoveEmployee = async (employeeId: string, employeeName: string) => {
-    const employee = allEmployees.find(emp => emp.id === employeeId);
+    const employee = employees.find(emp => emp.id === employeeId);
     if (!employee || !canRemoveEmployee(employee)) {
       toast({
         title: "Error",
@@ -218,6 +191,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
       let responseData;
       
       try {
+        // Only try to parse as JSON if there's content
         const responseText = await response.text();
         responseData = responseText ? JSON.parse(responseText) : {};
       } catch (e) {
@@ -235,6 +209,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
         description: responseData.message || `${employeeName} has been removed successfully`,
       });
 
+      // Refresh the list
       fetchEmployees();
     } catch (error) {
       console.error('Error removing employee:', error);
@@ -253,21 +228,21 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
     fetchEmployees();
   };
 
-  const handleConsultantSelect = (employee: Employee) => {
-    setSelectedConsultant(employee);
-    setSearchTerm(employee.name);
-    setIsPopoverOpen(false);
-    setPage(1);
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setPage(1);
-  };
+  useEffect(() => {
+    fetchEmployees();
+  }, [refreshTrigger, currentCompany]);
 
   const canAddEmployee = user && ['admin', 'super_admin'].includes(user.role);
 
-  const headingTitle = title || `Consultants (${filteredEmployees.length})`;
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return employees.slice(startIndex, endIndex);
+  }, [employees, page, pageSize]);
+
+  const totalPages = Math.ceil(employees.length / pageSize);
+
+  const headingTitle = title || `Consultants (${employees.length})`;
   const emptyStateTitle = emptyTitle || 'No consultants found';
   const emptyStateSubtitle = emptySubtitle || 'Get started by adding your first consultant';
   const addLabel = addButtonLabel || 'Add Consultant';
@@ -320,6 +295,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Actions Palette */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="text-base">Actions</CardTitle>
@@ -329,7 +305,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
             <Button 
               variant="outline" 
               onClick={exportToCSV}
-              disabled={filteredEmployees.length === 0}
+              disabled={employees.length === 0}
               className="gap-2"
             >
               <Download className="w-4 h-4" />
@@ -349,6 +325,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
         </CardContent>
       </Card>
 
+      {/* Consultants List Palette */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -357,39 +334,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               <h2 className="text-xl font-bold">{headingTitle}</h2>
             </div>
             <div className="flex items-center gap-2">
-              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-64 justify-between"
-                  >
-                    {selectedConsultant ? selectedConsultant.name : "Search consultant..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search consultant..."
-                      value={searchTerm}
-                      onValueChange={handleSearchChange}
-                    />
-                    <CommandEmpty>No consultant found.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredEmployees.map((employee) => (
-                        <CommandItem
-                          key={employee.id}
-                          value={employee.name}
-                          onSelect={() => handleConsultantSelect(employee)}
-                        >
-                          {employee.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
               <Select value={pageSize.toString()} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -405,10 +349,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {paginatedEmployees.length === 0 && filteredEmployees.length > 0 ? (
+          {paginatedEmployees.length === 0 && employees.length > 0 ? (
             <div className="text-center py-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No consultants found</h3>
-              <p className="text-gray-500 mb-3">Try adjusting your search criteria</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No consultants on this page</h3>
+              <p className="text-gray-500 mb-3">Try adjusting your filters or page size</p>
             </div>
           ) : paginatedEmployees.length === 0 ? (
             <div className="text-center py-6">
@@ -507,10 +451,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
             </div>
           )}
 
+          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} • Showing {paginatedEmployees.length} of {filteredEmployees.length} consultants
+                Page {page} of {totalPages} • Showing {paginatedEmployees.length} of {employees.length} consultants
               </div>
               <div className="flex gap-2">
                 <Button
