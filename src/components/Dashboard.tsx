@@ -478,7 +478,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               </Button>
               <Button variant="gradient" onClick={() => onNavigate?.('project-team-management')}>
                 <Users className="w-4 h-4 mr-2" />
-                Consultant Management
+                Consultant Directory
               </Button>
             </div>
           </CardContent>

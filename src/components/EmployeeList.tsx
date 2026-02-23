@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download } from 'lucide-react';
+import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import EditEmployeeForm from './EditEmployeeForm';
 import {
   AlertDialog,
@@ -59,6 +60,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const toTitleCase = (str: string) => {
     if (!str) return '';
@@ -212,7 +215,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
       console.error('Error removing employee:', error);
       toast({
         title: "Error",
-        description: error.message || "An error occurred while removing the employee",
+        description: error.message || "An error occurred while removing an employee",
         variant: "destructive"
       });
     } finally {
@@ -231,10 +234,18 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
   const canAddEmployee = user && ['admin', 'super_admin'].includes(user.role);
 
-  const headingTitle = title || `Employees (${employees.length})`;
-  const emptyStateTitle = emptyTitle || 'No employees found';
-  const emptyStateSubtitle = emptySubtitle || 'Get started by adding your first employee';
-  const addLabel = addButtonLabel || 'Add Employee';
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return employees.slice(startIndex, endIndex);
+  }, [employees, page, pageSize]);
+
+  const totalPages = Math.ceil(employees.length / pageSize);
+
+  const headingTitle = title || `Consultants (${employees.length})`;
+  const emptyStateTitle = emptyTitle || 'No consultants found';
+  const emptyStateSubtitle = emptySubtitle || 'Get started by adding your first consultant';
+  const addLabel = addButtonLabel || 'Add Consultant';
 
   if (!currentCompany) {
     return (
@@ -284,40 +295,23 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Users className="w-5 h-5 text-blue-600" />
-          <h2 className="text-xl font-bold">{headingTitle}</h2>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={exportToCSV}
-            disabled={employees.length === 0}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </Button>
-          {additionalActions}
-          {canAddEmployee && (
+      {/* Actions Palette */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-base">Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
             <Button 
-              onClick={onAddEmployee}
-              variant="gradient"
+              variant="outline" 
+              onClick={exportToCSV}
+              disabled={employees.length === 0}
+              className="gap-2"
             >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {addLabel}
+              <Download className="w-4 h-4" />
+              Export CSV
             </Button>
-          )}
-        </div>
-      </div>
-
-      {employees.length === 0 ? (
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6 text-center">
-            <Users className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyStateTitle}</h3>
-            <p className="text-gray-500 mb-3">{emptyStateSubtitle}</p>
+            {additionalActions}
             {canAddEmployee && (
               <Button 
                 onClick={onAddEmployee}
@@ -327,95 +321,164 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                 {addLabel}
               </Button>
             )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {employees.map((employee) => (
-            <Card key={employee.id} className="border-0 shadow-lg card-hover">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{toTitleCase(employee.name)}</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={employee.role === 'admin' || employee.role === 'super_admin' ? 'default' : 'secondary'}>
-                      {employee.role.replace('_', ' ')}
-                    </Badge>
-                    <div className="flex space-x-1">
-                      {canEditEmployee(employee) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => setEditingEmployee(employee)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                      )}
-                      {canRemoveEmployee(employee) && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Consultants List Palette */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Users className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-bold">{headingTitle}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={pageSize.toString()} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 per page</SelectItem>
+                  <SelectItem value="10">10 per page</SelectItem>
+                  <SelectItem value="20">20 per page</SelectItem>
+                  <SelectItem value="50">50 per page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {paginatedEmployees.length === 0 && employees.length > 0 ? (
+            <div className="text-center py-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No consultants on this page</h3>
+              <p className="text-gray-500 mb-3">Try adjusting your filters or page size</p>
+            </div>
+          ) : paginatedEmployees.length === 0 ? (
+            <div className="text-center py-6">
+              <Users className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyStateTitle}</h3>
+              <p className="text-gray-500 mb-3">{emptyStateSubtitle}</p>
+              {canAddEmployee && (
+                <Button 
+                  onClick={onAddEmployee}
+                  variant="gradient"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {addLabel}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {paginatedEmployees.map((employee) => (
+                <Card key={employee.id} className="border-0 shadow-lg card-hover">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{toTitleCase(employee.name)}</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={employee.role === 'admin' || employee.role === 'super_admin' ? 'default' : 'secondary'}>
+                          {employee.role.replace('_', ' ')}
+                        </Badge>
+                        <div className="flex space-x-1">
+                          {canEditEmployee(employee) && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              disabled={removingId === employee.id}
+                              className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => setEditingEmployee(employee)}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Edit className="w-3 h-3" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove Employee</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to remove {toTitleCase(employee.name)}? This action will deactivate their account and they will no longer be able to access the system.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleRemoveEmployee(employee.id, employee.name)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Remove
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                          )}
+                          {canRemoveEmployee(employee) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  disabled={removingId === employee.id}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Employee</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove {toTitleCase(employee.name)}? This action will deactivate their account and they will no longer be able to access system.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRemoveEmployee(employee.id, employee.name)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Mail className="w-3 h-3" />
-                  <span className="text-sm">{employee.email}</span>
-                </div>
-                
-                {employee.department && (
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Building className="w-3 h-3" />
-                    <span className="text-sm">{employee.department}</span>
-                  </div>
-                )}
-                
-                {employee.position && (
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Briefcase className="w-3 h-3" />
-                    <span className="text-sm">{employee.position}</span>
-                  </div>
-                )}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Mail className="w-3 h-3" />
+                      <span className="text-sm">{employee.email}</span>
+                    </div>
+                    
+                    {employee.department && (
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Building className="w-3 h-3" />
+                        <span className="text-sm">{employee.department}</span>
+                      </div>
+                    )}
+                    
+                    {employee.position && (
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Briefcase className="w-3 h-3" />
+                        <span className="text-sm">{employee.position}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
-                {employee.hire_date && (
-                  <div className="text-xs text-gray-500 pt-1">
-                    Joined: {new Date(employee.hire_date).toLocaleDateString()}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {totalPages} • Showing {paginatedEmployees.length} of {employees.length} consultants
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

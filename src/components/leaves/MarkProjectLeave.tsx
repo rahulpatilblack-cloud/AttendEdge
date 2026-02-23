@@ -276,7 +276,7 @@ export default function MarkProjectLeave() {
   return (
     <div className="container mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Mark Project Leave (Hours)</h1>
+        <h1 className="text-2xl font-bold">Project Leave Entry</h1>
         <Button variant="outline" onClick={() => { fetchAssignments(); fetchRecentLeaves(); }}>
           Refresh
         </Button>

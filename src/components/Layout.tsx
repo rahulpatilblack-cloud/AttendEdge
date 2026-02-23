@@ -217,6 +217,20 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       roles: ['reporting_manager', 'admin', 'super_admin'],
       requiresPermission: true
     },
+    {
+      id: 'mark-project-leave-hours',
+      label: 'Project Leave Entry',
+      icon: CalendarPlus,
+      roles: ['admin', 'super_admin'],
+      requiresPermission: true
+    },
+    {
+      id: 'project-team-management',
+      label: 'Consultant Directory',
+      icon: Users,
+      roles: ['reporting_manager', 'admin', 'super_admin'],
+      requiresPermission: true
+    },
     // Settings moved to Management section
   ].filter(item => item.id !== 'dummy-attendance' && item.id !== 'company-profile' && item.id !== 'leave-type-management');
 
@@ -475,8 +489,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
               </div>
               )}
 */}
-              {/* Leave Management retractable menu */}
-              <div>
+              {/* Leave Management retractable menu - HIDDEN */}
+              {/* <div>
                 <button
                   className="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-left font-semibold transition-colors sidebar-nav-btn bg-[rgba(0,0,0,0.03)] hover:bg-[rgba(0,0,0,0.06)] mt-2"
                   onClick={() => toggleSection('project-management')}
@@ -541,7 +555,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                     </>
                   )}
                 </div>
-              </div>
+              </div> */}
+              {/* Leave Management (hr) retractable menu */}
 
               {/* Leave Management (hr) retractable menu */}
               <div>
@@ -552,7 +567,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                     aria-controls="project-leave-hours-system-menu"
                   >
                     <FileSpreadsheet className="w-5 h-5" />
-                    <span>Leave Management (hr)</span>
+                    <span>Leave Management (HR)</span>
                     {isSectionOpen('project-leave-hours-system') ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
                   </button>
                   <div
@@ -594,7 +609,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         }`}
                       >
                         <Users className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Consultant Management</span>
+                        <span className="sidebar-label text-sm">Consultant Directory</span>
                       </button>
                     )}
 
@@ -618,7 +633,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         }`}
                       >
                         <CalendarPlus className="w-5 h-5" />
-                        <span className="sidebar-label text-sm">Mark Project Leave</span>
+                        <span className="sidebar-label text-sm">Project Leave Entry</span>
                       </button>
                     )}
 
@@ -763,8 +778,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                 'manage-projects',    // In Leave Management section
                 'project-leave',      // In Leave Management section
                 'manage-project-leave', // In Leave Management section
-'project-reports',    // In Leave Management section
+                'project-reports',    // In Leave Management section
                 'leave-report-hr',    // In Leave Management (hr) section
+                'mark-project-leave-hours', // In Leave Management (hr) section
                 'project-team-management' // In Leave Management section
               ].includes(item.id)).map((item) => {
                 const Icon = item.icon;
