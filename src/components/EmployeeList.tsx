@@ -4,10 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search, Filter, Check } from 'lucide-react';
 import EditEmployeeForm from './EditEmployeeForm';
 import {
   AlertDialog,
@@ -69,6 +71,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
 
   // Get unique departments and roles for filter options
   const departments = useMemo(() => {
@@ -79,6 +82,18 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   const roles = useMemo(() => {
     const roleSet = new Set(employees.map(emp => emp.role));
     return Array.from(roleSet).sort();
+  }, [employees]);
+
+  // Create consultant options for searchable combobox
+  const consultantOptions = useMemo(() => {
+    return employees.map(emp => ({
+      value: emp.id,
+      label: emp.name,
+      email: emp.email,
+      department: emp.department,
+      position: emp.position,
+      role: emp.role
+    }));
   }, [employees]);
 
   // Filter employees
@@ -401,15 +416,58 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               {/* Search Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search consultants..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Popover open={searchPopoverOpen} onOpenChange={setSearchPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-left font-normal"
+                    >
+                      {searchTerm ? (
+                        consultantOptions.find(emp => emp.label.toLowerCase().includes(searchTerm.toLowerCase()))?.label || searchTerm
+                      ) : (
+                        "Search consultants..."
+                      )}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search consultants..." 
+                        value={searchTerm}
+                        onValueChange={setSearchTerm}
+                      />
+                      <CommandEmpty>No consultant found.</CommandEmpty>
+                      <CommandGroup>
+                        {consultantOptions.map((consultant) => (
+                          <CommandItem
+                            key={consultant.value}
+                            value={consultant.label}
+                            onSelect={() => {
+                              setSearchTerm(consultant.label);
+                              setSearchPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                consultant.label.toLowerCase().includes(searchTerm.toLowerCase())
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{consultant.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {consultant.email} • {consultant.department || 'No department'}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Role Filter */}
