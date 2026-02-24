@@ -128,27 +128,41 @@ export default function MarkProjectLeave() {
     
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     // Validate dates
     if (start > end) return 0;
-    
-    // Calculate difference in days (inclusive)
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays + 1; // +1 to include both start and end dates
+
+    // Calculate business days (excluding weekends)
+    let businessDays = 0;
+    const current = new Date(start);
+
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+      // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        businessDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return businessDays;
   };
 
   const generateDateRange = () => {
     if (!isDateRange) return [leaveDate];
-    
+
     const dates = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-      dates.push(new Date(date).toISOString().split('T')[0]);
+      const dayOfWeek = date.getDay();
+      // Only include weekdays (Monday-Friday)
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        dates.push(new Date(date).toISOString().split('T')[0]);
+      }
     }
-    
+
     return dates;
   };
 
@@ -257,7 +271,7 @@ export default function MarkProjectLeave() {
       if (totalDays > 30) {
         toast({
           title: 'Error',
-          description: 'Leave range cannot exceed 30 days',
+          description: 'Leave range cannot exceed 30 business days',
           variant: 'destructive',
         });
         return;
@@ -307,7 +321,7 @@ export default function MarkProjectLeave() {
     if (totalHoursNeeded > remaining) {
       toast({
         title: 'Error',
-        description: `Insufficient leave balance. Need ${totalHoursNeeded} hours for ${totalDays} days, have ${remaining} hours`,
+        description: `Insufficient leave balance. Need ${totalHoursNeeded} hours for ${totalDays} business day${totalDays > 1 ? 's' : ''}, have ${remaining} hours`,
         variant: 'destructive',
       });
       return;
@@ -546,7 +560,7 @@ export default function MarkProjectLeave() {
               <div className="md:col-span-2 p-3 bg-blue-50 rounded-lg">
                 <div className="text-sm font-medium text-blue-900">Leave Summary:</div>
                 <div className="text-xs text-blue-700">
-                  Total Days: {calculateTotalDays()} days
+                  Business Days: {calculateTotalDays()} days (weekends excluded)
                   <br />
                   Total Hours: {(calculateTotalDays() * computedHours).toFixed(2)} hours
                 </div>
