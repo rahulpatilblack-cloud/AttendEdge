@@ -84,6 +84,7 @@ export default function MarkProjectLeave() {
   }, [startDate]);
 
   const [recentLeaves, setRecentLeaves] = useState<RecentLeaveRow[]>([]);
+  const [usedHours, setUsedHours] = useState<number>(0);
 
   const consultants = useMemo((): ConsultantOption[] => {
     const map = new Map<string, ConsultantOption>();
@@ -243,11 +244,45 @@ export default function MarkProjectLeave() {
     }
   };
 
+  const fetchUsedHours = async () => {
+    if (!selectedConsultantId || !selectedProjectId) {
+      setUsedHours(0);
+      return;
+    }
+
+    try {
+      const currentYear = new Date().getFullYear();
+      const startDate = new Date(currentYear, 0, 1).toISOString().split('T')[0]; // Jan 1 of current year
+      const endDate = new Date(currentYear, 11, 31).toISOString().split('T')[0]; // Dec 31 of current year
+
+      const { data, error } = await supabase
+        .from('project_leaves')
+        .select('hours')
+        .eq('consultant_id', selectedConsultantId)
+        .eq('project_id', selectedProjectId)
+        .eq('status', 'approved')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (error) throw error;
+
+      const totalUsed = (data || []).reduce((sum, leave: any) => sum + (Number(leave.hours) || 0), 0);
+      setUsedHours(totalUsed);
+    } catch (e: any) {
+      console.error('Error fetching used hours:', e);
+      setUsedHours(0);
+    }
+  };
+
   useEffect(() => {
     fetchAssignments();
     fetchRecentLeaves();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    fetchUsedHours();
+  }, [selectedConsultantId, selectedProjectId]);
 
   const handleCreateLeave = async () => {
     if (!selectedAssignment) {
@@ -377,14 +412,14 @@ export default function MarkProjectLeave() {
   }
 
   const remaining = selectedAssignment
-    ? (Number(selectedAssignment.allocated_hours) || 0) - (Number(selectedAssignment.allocated_leave_hours) || 0)
+    ? (Number(selectedAssignment.allocated_hours) || 0) - usedHours
     : 0;
 
   return (
     <div className="container mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Project Leave Entry</h1>
-        <Button variant="outline" onClick={() => { fetchAssignments(); fetchRecentLeaves(); }}>
+        <Button variant="outline" onClick={() => { fetchAssignments(); fetchRecentLeaves(); fetchUsedHours(); }}>
           Refresh
         </Button>
       </div>
@@ -444,7 +479,7 @@ export default function MarkProjectLeave() {
               </Popover>
               {selectedAssignment && (
                 <div className="text-xs text-muted-foreground">
-                  Allocated: {selectedAssignment.allocated_hours} hrs | Used: {selectedAssignment.allocated_leave_hours} hrs | Remaining: {remaining} hrs
+                  Allocated: {selectedAssignment.allocated_hours} hrs | Used: {usedHours} hrs | Remaining: {remaining} hrs
                 </div>
               )}
             </div>
@@ -468,6 +503,8 @@ export default function MarkProjectLeave() {
                 </SelectContent>
               </Select>
             </div>
+
+        
 
             <div className="space-y-2">
               <div className="text-sm font-medium">Date Selection</div>
