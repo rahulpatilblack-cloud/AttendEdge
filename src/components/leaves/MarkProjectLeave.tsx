@@ -72,6 +72,11 @@ export default function MarkProjectLeave() {
   const [leaveType, setLeaveType] = useState<LeaveType>('full_day');
   const [partialHours, setPartialHours] = useState<number>(1);
   const [notes, setNotes] = useState<string>('');
+  
+  // Date range state
+  const [isDateRange, setIsDateRange] = useState<boolean>(false);
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   const [recentLeaves, setRecentLeaves] = useState<RecentLeaveRow[]>([]);
 
@@ -116,6 +121,36 @@ export default function MarkProjectLeave() {
     if (leaveType === 'half_day') return 4;
     return Number(partialHours) || 0;
   }, [leaveType, partialHours]);
+
+  // Helper functions for date range
+  const calculateTotalDays = () => {
+    if (!isDateRange) return 1;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Validate dates
+    if (start > end) return 0;
+    
+    // Calculate difference in days (inclusive)
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // +1 to include both start and end dates
+  };
+
+  const generateDateRange = () => {
+    if (!isDateRange) return [leaveDate];
+    
+    const dates = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+      dates.push(new Date(date).toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -192,19 +227,50 @@ export default function MarkProjectLeave() {
     if (!selectedAssignment) {
       toast({
         title: 'Error',
-        description: 'Please select a project + consultant assignment',
+        description: 'Please select a consultant and project',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!leaveDate) {
-      toast({
-        title: 'Error',
-        description: 'Please select a leave date',
-        variant: 'destructive',
-      });
-      return;
+    // Date validation for range selection
+    if (isDateRange) {
+      if (!startDate || !endDate) {
+        toast({
+          title: 'Error',
+          description: 'Please select both start and end dates',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (new Date(startDate) > new Date(endDate)) {
+        toast({
+          title: 'Error',
+          description: 'Start date must be before end date',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const totalDays = calculateTotalDays();
+      if (totalDays > 30) {
+        toast({
+          title: 'Error',
+          description: 'Leave range cannot exceed 30 days',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else {
+      if (!leaveDate) {
+        toast({
+          title: 'Error',
+          description: 'Please select a leave date',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     if (!notes.trim()) {
@@ -234,31 +300,49 @@ export default function MarkProjectLeave() {
       return;
     }
 
+    // Check balance for date ranges
+    const totalDays = calculateTotalDays();
+    const totalHoursNeeded = computedHours * totalDays;
+    
+    if (totalHoursNeeded > remaining) {
+      toast({
+        title: 'Error',
+        description: `Insufficient leave balance. Need ${totalHoursNeeded} hours for ${totalDays} days, have ${remaining} hours`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsSaving(true);
 
-      const payload = {
+      // Create multiple records for date range
+      const dates = generateDateRange();
+      const records = dates.map(date => ({
         consultant_id: selectedAssignment.consultant_id,
         project_id: selectedAssignment.project_id,
-        date: leaveDate,
+        date: date,
         hours: computedHours,
         type: leaveType,
         status: 'approved',
         notes: notes.trim(),
         created_by: user?.id,
-      };
+      }));
 
-      const { error } = await supabase.from('project_leaves').insert([payload]);
+      const { error } = await supabase.from('project_leaves').insert(records);
       if (error) throw error;
 
       toast({
         title: 'Success',
-        description: 'Leave marked successfully',
+        description: `Leave marked successfully for ${dates.length} day${dates.length > 1 ? 's' : ''}`,
       });
 
       setNotes('');
       setLeaveType('full_day');
       setPartialHours(1);
+      setIsDateRange(false);
+      setStartDate(new Date().toISOString().split('T')[0]);
+      setEndDate(new Date().toISOString().split('T')[0]);
 
       await fetchRecentLeaves();
       await fetchAssignments();
@@ -372,8 +456,54 @@ export default function MarkProjectLeave() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-sm font-medium">Date</div>
-              <Input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} />
+              <div className="text-sm font-medium">Date Selection</div>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={!isDateRange}
+                    onChange={() => setIsDateRange(false)}
+                    className="mr-2"
+                  />
+                  Single Day
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={isDateRange}
+                    onChange={() => setIsDateRange(true)}
+                    className="mr-2"
+                  />
+                  Date Range
+                </label>
+              </div>
+              
+              {!isDateRange ? (
+                <Input 
+                  type="date" 
+                  value={leaveDate} 
+                  onChange={e => setLeaveDate(e.target.value)} 
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Start Date</label>
+                    <Input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={e => setStartDate(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">End Date</label>
+                    <Input 
+                      type="date" 
+                      value={endDate} 
+                      onChange={e => setEndDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -410,6 +540,18 @@ export default function MarkProjectLeave() {
                 {leaveType === 'partial' ? `Custom hours (max 8 hrs per day)` : `Computed: ${computedHours} hrs`}
               </div>
             </div>
+
+            {/* Leave Summary for Date Range */}
+            {isDateRange && (
+              <div className="md:col-span-2 p-3 bg-blue-50 rounded-lg">
+                <div className="text-sm font-medium text-blue-900">Leave Summary:</div>
+                <div className="text-xs text-blue-700">
+                  Total Days: {calculateTotalDays()} days
+                  <br />
+                  Total Hours: {(calculateTotalDays() * computedHours).toFixed(2)} hours
+                </div>
+              </div>
+            )}
 
             <div className="md:col-span-2 space-y-2">
               <div className="text-sm font-medium">Notes / Remarks (required)</div>
