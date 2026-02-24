@@ -527,7 +527,7 @@ export default function MarkProjectLeave() {
             </div>
 
             {/* Leave Summary for Date Range */}
-            {isDateRange && (
+            {startDate && endDate && (
               <div className="md:col-span-2 p-3 bg-blue-50 rounded-lg">
                 <div className="text-sm font-medium text-blue-900">Leave Summary:</div>
                 <div className="text-xs text-blue-700">
