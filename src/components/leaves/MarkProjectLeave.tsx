@@ -68,15 +68,20 @@ export default function MarkProjectLeave() {
   const [consultantOpen, setConsultantOpen] = useState(false);
   const [selectedConsultantId, setSelectedConsultantId] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [leaveDate, setLeaveDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [leaveType, setLeaveType] = useState<LeaveType>('full_day');
   const [partialHours, setPartialHours] = useState<number>(1);
   const [notes, setNotes] = useState<string>('');
   
   // Date range state
-  const [isDateRange, setIsDateRange] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
+  // Auto-update end date when start date changes
+  useEffect(() => {
+    if (startDate) {
+      setEndDate(startDate);
+    }
+  }, [startDate]);
 
   const [recentLeaves, setRecentLeaves] = useState<RecentLeaveRow[]>([]);
 
@@ -124,8 +129,6 @@ export default function MarkProjectLeave() {
 
   // Helper functions for date range
   const calculateTotalDays = () => {
-    if (!isDateRange) return 1;
-
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -153,8 +156,6 @@ export default function MarkProjectLeave() {
   };
 
   const generateDateRange = () => {
-    if (!isDateRange) return [leaveDate];
-
     const dates = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -258,44 +259,33 @@ export default function MarkProjectLeave() {
       return;
     }
 
-    // Date validation for range selection
-    if (isDateRange) {
-      if (!startDate || !endDate) {
-        toast({
-          title: 'Error',
-          description: 'Please select both start and end dates',
-          variant: 'destructive',
-        });
-        return;
-      }
+    // Date validation
+    if (!startDate || !endDate) {
+      toast({
+        title: 'Error',
+        description: 'Please select both start and end dates',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-      if (new Date(startDate) > new Date(endDate)) {
-        toast({
-          title: 'Error',
-          description: 'Start date must be before end date',
-          variant: 'destructive',
-        });
-        return;
-      }
+    if (new Date(startDate) > new Date(endDate)) {
+      toast({
+        title: 'Error',
+        description: 'Start date must be before end date',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-      const totalDays = calculateTotalDays();
-      if (totalDays > 30) {
-        toast({
-          title: 'Error',
-          description: 'Leave range cannot exceed 30 business days',
-          variant: 'destructive',
-        });
-        return;
-      }
-    } else {
-      if (!leaveDate) {
-        toast({
-          title: 'Error',
-          description: 'Please select a leave date',
-          variant: 'destructive',
-        });
-        return;
-      }
+    const totalDays = calculateTotalDays();
+    if (totalDays > 30) {
+      toast({
+        title: 'Error',
+        description: 'Leave range cannot exceed 30 business days',
+        variant: 'destructive',
+      });
+      return;
     }
 
     if (!notes.trim()) {
@@ -326,13 +316,13 @@ export default function MarkProjectLeave() {
     }
 
     // Check balance for date ranges
-    const totalDays = calculateTotalDays();
-    const totalHoursNeeded = computedHours * totalDays;
+    const totalBusinessDays = calculateTotalDays();
+    const totalHoursNeeded = computedHours * totalBusinessDays;
     
     if (totalHoursNeeded > remaining) {
       toast({
         title: 'Error',
-        description: `Insufficient leave balance. Need ${totalHoursNeeded} hours for ${totalDays} business day${totalDays > 1 ? 's' : ''}, have ${remaining} hours`,
+        description: `Insufficient leave balance. Need ${totalHoursNeeded} hours for ${totalBusinessDays} business day${totalBusinessDays > 1 ? 's' : ''}, have ${remaining} hours`,
         variant: 'destructive',
       });
       return;
@@ -365,7 +355,6 @@ export default function MarkProjectLeave() {
       setNotes('');
       setLeaveType('full_day');
       setPartialHours(1);
-      setIsDateRange(false);
       setStartDate(new Date().toISOString().split('T')[0]);
       setEndDate(new Date().toISOString().split('T')[0]);
 
@@ -482,53 +471,24 @@ export default function MarkProjectLeave() {
 
             <div className="space-y-2">
               <div className="text-sm font-medium">Date Selection</div>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={!isDateRange}
-                    onChange={() => setIsDateRange(false)}
-                    className="mr-2"
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground">Start Date</label>
+                  <Input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
                   />
-                  Single Day
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={isDateRange}
-                    onChange={() => setIsDateRange(true)}
-                    className="mr-2"
-                  />
-                  Date Range
-                </label>
-              </div>
-              
-              {!isDateRange ? (
-                <Input 
-                  type="date" 
-                  value={leaveDate} 
-                  onChange={e => setLeaveDate(e.target.value)} 
-                />
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-muted-foreground">Start Date</label>
-                    <Input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={e => setStartDate(e.target.value)} 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">End Date</label>
-                    <Input 
-                      type="date" 
-                      value={endDate} 
-                      onChange={e => setEndDate(e.target.value)} 
-                    />
-                  </div>
                 </div>
-              )}
+                <div>
+                  <label className="text-xs text-muted-foreground">End Date</label>
+                  <Input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
