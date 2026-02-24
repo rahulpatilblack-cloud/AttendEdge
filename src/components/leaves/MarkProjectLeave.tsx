@@ -125,7 +125,7 @@ export default function MarkProjectLeave() {
   // Helper functions for date range
   const calculateTotalDays = () => {
     if (!isDateRange) return 1;
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -134,15 +134,19 @@ export default function MarkProjectLeave() {
 
     // Calculate business days (excluding weekends)
     let businessDays = 0;
-    const current = new Date(start);
+    const currentTime = start.getTime();
+    const endTime = end.getTime();
 
-    while (current <= end) {
-      const dayOfWeek = current.getDay();
+    // Add milliseconds for one day to ensure inclusive counting
+    const endTimeInclusive = endTime + (24 * 60 * 60 * 1000);
+
+    for (let time = currentTime; time <= endTimeInclusive; time += 24 * 60 * 60 * 1000) {
+      const currentDate = new Date(time);
+      const dayOfWeek = currentDate.getDay();
       // 0 = Sunday, 6 = Saturday
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         businessDays++;
       }
-      current.setDate(current.getDate() + 1);
     }
 
     return businessDays;
@@ -155,11 +159,18 @@ export default function MarkProjectLeave() {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-      const dayOfWeek = date.getDay();
+    const currentTime = start.getTime();
+    const endTime = end.getTime();
+
+    // Add milliseconds for one day to ensure inclusive range
+    const endTimeInclusive = endTime + (24 * 60 * 60 * 1000);
+
+    for (let time = currentTime; time <= endTimeInclusive; time += 24 * 60 * 60 * 1000) {
+      const currentDate = new Date(time);
+      const dayOfWeek = currentDate.getDay();
       // Only include weekdays (Monday-Friday)
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        dates.push(new Date(date).toISOString().split('T')[0]);
+        dates.push(currentDate.toISOString().split('T')[0]);
       }
     }
 
