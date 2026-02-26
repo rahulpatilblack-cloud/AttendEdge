@@ -179,15 +179,14 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
         Current company: {currentCompany ? currentCompany.name : 'No company selected'}
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {/* Removed company field from the form */}
         {/* Show warning if currentCompany is not set */}
         {!currentCompany && (
-          <div className="p-4 text-red-600 bg-red-50 rounded">No company selected. Please select a company before adding an employee.</div>
+          <div className="p-4 text-red-600 bg-red-50 rounded-lg">No company selected. Please select a company before adding an employee.</div>
         )}
         {currentCompany && (
           <FormItem>
-            <FormLabel>Company</FormLabel>
-            <Input value={currentCompany.name} readOnly disabled />
+            <FormLabel className="form-label">Company</FormLabel>
+            <Input value={currentCompany.name} readOnly disabled className="form-input bg-gray-50" />
           </FormItem>
         )}
         <FormField
@@ -195,7 +194,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel className="form-label form-label-required">Full Name</FormLabel>
               <FormControl>
                 <Input placeholder="Enter full name" {...field} />
               </FormControl>
@@ -209,9 +208,9 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel className="form-label form-label-required">Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="Enter email address" {...field} />
+                <Input type="email" placeholder="Enter email address" className="form-input" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -224,10 +223,10 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Role</FormLabel>
+              <FormLabel className="form-label form-label-required">Role</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                 </FormControl>
@@ -270,7 +269,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
             <FormItem>
               <FormLabel>Position (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="Enter position" {...field} />
+                <Input placeholder="Enter position" className="form-input" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -314,7 +313,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
               </Select>
               {teams.length === 0 && (
                 <div className="mt-2">
-                  <Button type="button" size="sm" onClick={() => setShowAddTeam(true)}>
+                  <Button type="button" size="sm" variant="gradient" onClick={() => setShowAddTeam(true)}>
                     Add Team
                   </Button>
                 </div>
@@ -322,10 +321,10 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
               {showAddTeam && (
                 <div className="flex gap-2 mt-2">
                   <Input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="Team name" />
-                  <Button type="button" size="sm" onClick={handleAddTeam} disabled={isLoading || !newTeamName.trim()}>
+                  <Button type="button" size="sm" variant="gradient" onClick={handleAddTeam} disabled={isLoading || !newTeamName.trim()}>
                     {isLoading ? 'Adding...' : 'Save'}
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setShowAddTeam(false)}>Cancel</Button>
+                  <Button type="button" size="sm" variant="gradient" onClick={() => setShowAddTeam(false)}>Cancel</Button>
                 </div>
               )}
               <FormMessage />
@@ -398,7 +397,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({ onSuccess, onCancel }
           <Button type="submit" variant="gradient" disabled={isLoading}>
             {isLoading ? 'Adding...' : 'Add Employee'}
           </Button>
-          <Button type="button" variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onCancel}>
+          <Button type="button" variant="gradient" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onCancel}>
             Cancel
           </Button>
         </div>

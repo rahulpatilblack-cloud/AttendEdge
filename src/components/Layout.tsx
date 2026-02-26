@@ -857,7 +857,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
         )}
 
         {/* Main Content */}
-        <div className="flex-1" style={{ marginLeft: sidebarVisible ? '16rem' : 0, height: '100vh', overflowY: 'auto', transition: 'margin-left 0.3s' }}>
+        <div className={`flex-1 gradient-page ${sidebarVisible ? 'lg:ml-64' : ''}`} style={{ height: '100vh', overflowY: 'auto', transition: 'margin-left 0.3s' }}>
           <div className="p-3 lg:p-4">
             {children}
           </div>

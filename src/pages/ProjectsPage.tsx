@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Calendar, Clock, Search, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Clock, Search, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -250,33 +250,27 @@ const ProjectsPage = () => {
               <CardTitle>Projects</CardTitle>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Button
-                  variant="outline"
+                  variant="gradient"
                   onClick={() => setIsBulkUpdateOpen(true)}
                   className="flex items-center gap-2"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Edit className="w-4 h-4" />
                   Bulk Update
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="gradient"
                   onClick={() => setIsBulkImportOpen(true)}
                   className="flex items-center gap-2"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Upload className="w-4 h-4" />
                   Bulk Import
                 </Button>
-                <Button onClick={handleNewProject} className="flex items-center gap-2">
+                <Button onClick={handleNewProject} variant="gradient" className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   New Project
                 </Button>
               </div>
             </div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Project List</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -290,7 +284,7 @@ const ProjectsPage = () => {
                 <div className="md:col-span-2">
                   <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
+                      <Button variant="gradient" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
                         {selectedConsultant ? `${selectedConsultant.name} (${selectedConsultant.email})` : 'All Consultants'}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -370,7 +364,7 @@ const ProjectsPage = () => {
                 </Select>
 
                 <div className="md:col-span-2 flex gap-2 items-center">
-                  <Button variant="outline" onClick={clearFilters}>
+                  <Button variant="gradient" onClick={clearFilters}>
                     Clear
                   </Button>
                 </div>
@@ -420,17 +414,19 @@ const ProjectsPage = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleEdit(project)}
+                            className="border-blue-200 text-blue-700 hover:bg-blue-50"
                           >
-                            <Pencil className="h-4 w-4 mr-1" />
+                            <Edit className="w-4 h-4" />
                             Edit
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleDelete(project.id)}
-                            className="text-red-600"
+                            className="border-red-200 text-red-600 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="w-4 h-4" />
+                            Delete
                           </Button>
                         </div>
                       </div>
@@ -456,7 +452,7 @@ const ProjectsPage = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      variant="gradient"
                       size="sm"
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}
@@ -464,7 +460,7 @@ const ProjectsPage = () => {
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="gradient"
                       size="sm"
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
@@ -477,6 +473,43 @@ const ProjectsPage = () => {
             </div>
             </div>
           </CardContent>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProject ? 'Edit Project' : 'Create New Project'}
+                </DialogTitle>
+              </DialogHeader>
+              <ProjectForm
+                project={{
+                  ...editingProject,
+                  members: projectMembers.map(m => ({
+                    user_id: m.consultant_id,
+                    role: m.role,
+                    allocation_percentage: m.allocation_percentage,
+                    start_date: m.start_date,
+                    end_date: m.end_date,
+                  })),
+                }}
+                onSubmit={handleFormSubmit}
+                isSubmitting={false}
+                onCancel={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <ProjectBulkImportModal
+            open={isBulkImportOpen}
+            onOpenChange={setIsBulkImportOpen}
+            onImportComplete={handleBulkImportClosed}
+          />
+          
+          <ProjectBulkUpdateModal
+            open={isBulkUpdateOpen}
+            onOpenChange={setIsBulkUpdateOpen}
+            onUpdateComplete={handleBulkUpdateComplete}
+          />
         </Card>
       </div>
 

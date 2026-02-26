@@ -19,9 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, FileSpreadsheet, X } from 'lucide-react';
+import { Check, ChevronsUpDown, FileSpreadsheet, X, Download, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { useAuditLogger } from '@/utils/auditLogger';
 
 interface HrLeaveRow {
   id: string;
@@ -78,13 +81,16 @@ const parseDate = (d: string) => parseISO(d);
 
 const LeaveReportHr: React.FC = () => {
   const { currentCompany } = useCompany();
+  const { logUserAction, logPerformance } = useAuditLogger();
   const prevMonth = subMonths(new Date(), 1);
 
-  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'half-yearly' | 'yearly'>('monthly');
+  const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'half-yearly' | 'yearly' | 'custom'>('monthly');
   const [year, setYear] = useState(prevMonth.getFullYear().toString());
   const [month, setMonth] = useState(prevMonth.getMonth().toString());
   const [quarter, setQuarter] = useState<'1' | '2' | '3' | '4'>('1');
   const [half, setHalf] = useState<'1' | '2'>('1');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
   const [employeeId, setEmployeeId] = useState<string>('all');
@@ -93,6 +99,20 @@ const LeaveReportHr: React.FC = () => {
 
   const { dateFrom, dateTo } = useMemo(() => {
     const y = Number(year);
+
+    if (periodType === 'custom') {
+      if (customStartDate && customEndDate) {
+        return {
+          dateFrom: parseISO(customStartDate),
+          dateTo: parseISO(customEndDate),
+        };
+      }
+      // Fallback to current month if custom dates not set
+      return {
+        dateFrom: startOfMonth(prevMonth),
+        dateTo: endOfMonth(prevMonth),
+      };
+    }
 
     if (periodType === 'monthly') {
       const m = Number(month);
@@ -118,7 +138,7 @@ const LeaveReportHr: React.FC = () => {
     }
 
     return { dateFrom: startOfYear(new Date(y, 0, 1)), dateTo: endOfYear(new Date(y, 0, 1)) };
-  }, [periodType, year, month, quarter, half]);
+  }, [periodType, year, month, quarter, half, customStartDate, customEndDate, prevMonth]);
 
   const { data: employees = [] } = useQuery<EmployeeOption[]>({
     queryKey: ['employees', currentCompany?.id],
@@ -143,11 +163,15 @@ const LeaveReportHr: React.FC = () => {
       month,
       quarter,
       half,
+      customStartDate,
+      customEndDate,
       statusFilter,
       employeeId,
       clientSearch,
     ],
     queryFn: async () => {
+      const startTime = Date.now();
+      
       let query = supabase
         .from('project_leaves')
         .select(
@@ -170,9 +194,19 @@ const LeaveReportHr: React.FC = () => {
 
       if (statusFilter !== 'all') query = query.eq('status', statusFilter);
       if (employeeId !== 'all') query = query.eq('consultant_id', employeeId);
+      if (clientSearch) query = query.ilike('projects.client_name', `%${clientSearch}%`);
 
       const { data, error } = await query;
+      
+      // Log performance
+      const duration = Date.now() - startTime;
+      logPerformance('leave-report-hr-query', duration, data?.length || 0);
+      
       if (error) {
+        logUserAction('QUERY_ERROR', 'leave-report-hr', { 
+          error: error.message,
+          filters: { statusFilter, employeeId, clientSearch, periodType }
+        });
         toast({
           title: 'Error',
           description: error.message || 'Failed to load leave report (hr)',
@@ -180,6 +214,12 @@ const LeaveReportHr: React.FC = () => {
         });
         throw error;
       }
+
+      // Log successful query
+      logUserAction('VIEW_REPORT', 'leave-report-hr', {
+        recordCount: data?.length || 0,
+        filters: { statusFilter, employeeId, clientSearch, periodType, dateRange: { from: dateFrom, to: dateTo } }
+      });
 
       return (data || [])
         .map((l: any) => {
@@ -218,23 +258,111 @@ const LeaveReportHr: React.FC = () => {
   }, [rows]);
 
   const exportToExcel = () => {
+    logUserAction('EXPORT_EXCEL', 'leave-report-hr', {
+      recordCount: rows.length,
+      filters: { statusFilter, employeeId, clientSearch, periodType }
+    });
+    
     const sheet = XLSX.utils.json_to_sheet(
       rows.map(r => ({
-        Consultant: r.consultant_name,
-        Email: r.consultant_email,
-        Client: r.client_name,
-        Project: r.project_name,
-        Date: r.date,
-        Hours: r.hours,
-        Type: r.type,
-        Status: r.status,
-        Notes: r.notes,
+        'Consultant Name': r.consultant_name,
+        'Email': r.consultant_email,
+        'Project': r.project_name,
+        'Client': r.client_name,
+        'Date': r.date,
+        'Hours': r.hours,
+        'Type': r.type,
+        'Status': r.status,
+        'Notes': r.notes || '',
       }))
     );
 
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'Leave Report (hr)');
-    XLSX.writeFile(book, `leave_report_hr_${periodType}_${year}.xlsx`);
+    XLSX.utils.book_append_sheet(book, sheet, 'Leave Report (HR)');
+    XLSX.writeFile(book, `leave_report_hr_${periodType}_${year}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const exportToCSV = () => {
+    logUserAction('EXPORT_CSV', 'leave-report-hr', {
+      recordCount: rows.length,
+      filters: { statusFilter, employeeId, clientSearch, periodType }
+    });
+    
+    const csvContent = [
+      ['Consultant Name', 'Email', 'Project', 'Client', 'Date', 'Hours', 'Type', 'Status', 'Notes'],
+      ...rows.map(r => [
+        r.consultant_name,
+        r.consultant_email,
+        r.project_name,
+        r.client_name,
+        r.date,
+        r.hours.toString(),
+        r.type,
+        r.status,
+        r.notes || '',
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leave_report_hr_${periodType}_${year}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = () => {
+    logUserAction('EXPORT_PDF', 'leave-report-hr', {
+      recordCount: rows.length,
+      filters: { statusFilter, employeeId, clientSearch, periodType }
+    });
+    
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text('Leave Report (HR)', 14, 15);
+    
+    // Add period info
+    doc.setFontSize(10);
+    doc.text(`Period: ${periodType} ${year}`, 14, 25);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 32);
+    
+    // Add summary
+    const summary = rows.reduce((acc, r) => {
+      acc.totalHours += r.hours;
+      acc.consultants.add(r.consultant_name);
+      return acc;
+    }, { totalHours: 0, consultants: new Set() });
+    
+    doc.text(`Total Hours: ${summary.totalHours}`, 14, 40);
+    doc.text(`Total Consultants: ${summary.consultants.size}`, 14, 47);
+    
+    // Prepare table data
+    const tableData = rows.map(r => [
+      r.consultant_name,
+      r.project_name,
+      r.client_name,
+      r.date,
+      r.hours.toString(),
+      r.type,
+      r.status
+    ]);
+    
+    // Add table
+    (doc as any).autoTable({
+      head: [['Consultant', 'Project', 'Client', 'Date', 'Hours', 'Type', 'Status']],
+      body: tableData,
+      startY: 55,
+      fontSize: 8,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [66, 139, 202] }
+    });
+    
+    doc.save(`leave_report_hr_${periodType}_${year}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const clearFilters = () => {
@@ -306,6 +434,7 @@ const LeaveReportHr: React.FC = () => {
             <SelectItem value="quarterly">Quarterly</SelectItem>
             <SelectItem value="half-yearly">Half Yearly</SelectItem>
             <SelectItem value="yearly">Yearly</SelectItem>
+            <SelectItem value="custom">Custom Date Range</SelectItem>
           </SelectContent>
         </Select>
 
@@ -321,6 +450,27 @@ const LeaveReportHr: React.FC = () => {
             ))}
           </SelectContent>
         </Select>
+
+        {periodType === 'custom' && (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground">Start Date</label>
+              <Input 
+                type="date" 
+                value={customStartDate} 
+                onChange={e => setCustomStartDate(e.target.value)} 
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">End Date</label>
+              <Input 
+                type="date" 
+                value={customEndDate} 
+                onChange={e => setCustomEndDate(e.target.value)} 
+              />
+            </div>
+          </>
+        )}
 
         {periodType === 'monthly' && (
           <Select value={month} onValueChange={setMonth}>
@@ -379,7 +529,13 @@ const LeaveReportHr: React.FC = () => {
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportToExcel}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" /> Export
+            <FileSpreadsheet className="h-4 w-4 mr-2" /> Excel
+          </Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
+          <Button variant="outline" onClick={exportToPDF}>
+            <FileText className="h-4 w-4 mr-2" /> PDF
           </Button>
           <Button variant="outline" onClick={clearFilters}>
             <X className="h-4 w-4" />

@@ -11,7 +11,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon, Save, UserPlus, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, UserPlus, X, Users, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -83,7 +83,7 @@ interface Consultant {
   id: string;
   name: string;
   role: string;
-  allocation_percentage: number;
+  allocated_hours: number;
   start_date: string;
   end_date: string | null;
 }
@@ -197,18 +197,33 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
   // Initialize selected consultants when project or form loads
   useEffect(() => {
-    if (project.members && project.members.length > 0) {
-      const initialConsultants = project.members.map(member => ({
-        id: member.user_id,
-        name: 'user_id' in member ? `User ${member.user_id}` : 'Unknown User',
-        role: member.role || 'member',
-        allocation_percentage: member.allocation_percentage || 100,
-        start_date: member.start_date || form.getValues('start_date'),
-        end_date: member.end_date || null,
-      }));
-      setSelectedConsultants(initialConsultants);
-    }
-  }, [project.members, form]);
+    const initializeConsultants = async () => {
+      if (project.members && project.members.length > 0 && project.id) {
+        // Fetch allocated_hours from consultant_projects table
+        const { data: consultantProjects, error } = await supabase
+          .from('consultant_projects')
+          .select('consultant_id, allocated_hours')
+          .eq('project_id', project.id);
+
+        if (!error && consultantProjects) {
+          const initialConsultants = project.members.map(member => {
+            const consultantProject = consultantProjects.find(cp => cp.consultant_id === member.user_id);
+            return {
+              id: member.user_id,
+              name: 'user_id' in member ? `User ${member.user_id}` : 'Unknown User',
+              role: member.role || 'member',
+              allocated_hours: consultantProject?.allocated_hours || 0,
+              start_date: member.start_date || form.getValues('start_date'),
+              end_date: member.end_date || null,
+            };
+          });
+          setSelectedConsultants(initialConsultants);
+        }
+      }
+    };
+
+    initializeConsultants();
+  }, [project.members, project.id, form]);
 
   // Handle assigning a consultant (single consultant per project)
   const handleAddConsultant = (employeeId: string) => {
@@ -219,7 +234,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
       id: employeeId,
       name: employee.name || employee.email || 'Unknown',
       role: 'member',
-      allocation_percentage: form.getValues('allocation_percentage') || 100,
+      allocated_hours: 0, // Default to 0, user can edit
       start_date: form.getValues('start_date') || new Date().toISOString().split('T')[0],
       end_date: form.getValues('end_date') || null,
     };
@@ -247,7 +262,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
       members: selectedConsultants.map(consultant => ({
         consultant_id: consultant.id,
         role: consultant.role,
-        allocation_percentage: consultant.allocation_percentage,
+        allocation_percentage: 100, // Default to 100% as per requirement
+        allocated_hours: consultant.allocated_hours,
         start_date: consultant.start_date,
         end_date: consultant.end_date || null,
         is_active: true,
@@ -259,8 +275,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Form fields with enhanced styling */}
           {!isEditMode && (
             <>
               <FormField
@@ -268,12 +285,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                 name="assignment_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assignment ID *</FormLabel>
+                    <FormLabel className="form-label form-label-required">Assignment ID</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Enter assignment ID" 
                         {...field} 
                         value={field.value || ''}
+                        className="form-input"
                       />
                     </FormControl>
                     <FormMessage />
@@ -286,12 +304,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                 name="end_client"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Client *</FormLabel>
+                    <FormLabel className="text-sm font-medium text-gray-700">End Client *</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Enter end client name" 
                         {...field} 
                         value={field.value || ''}
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       />
                     </FormControl>
                     <FormMessage />
@@ -305,14 +324,17 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className={isEditMode ? "col-span-2" : "col-span-2"}>
-                <FormLabel>Project Name {!isEditMode && "(Auto-generated)"}</FormLabel>
+              <FormItem className="col-span-1 md:col-span-2">
+                <FormLabel className="text-sm font-medium text-gray-700">Project Name {!isEditMode && "(Auto-generated)"}</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder={isEditMode ? "Enter project name" : "Project name will be generated automatically"}
                     {...field} 
                     readOnly={!isEditMode}
-                    className={isEditMode ? "" : "bg-gray-50"}
+                    className={isEditMode 
+                      ? "border-gray-300 focus:border-blue-500 focus:ring-blue-500" 
+                      : "bg-gray-50 border-gray-200 text-gray-600"
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -325,12 +347,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             name="client_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Name *</FormLabel>
+                <FormLabel className="text-sm font-medium text-gray-700">Client Name *</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="Enter client name" 
                     {...field} 
                     value={field.value || ''}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </FormControl>
                 <FormMessage />
@@ -338,20 +361,68 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             )}
           />
 
+          {!isEditMode && (
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="col-span-1 md:col-span-2">
+                  <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter project description (optional)" 
+                      {...field} 
+                      value={field.value || ''}
+                      rows={3}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">Status</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
             name="start_date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Start Date</FormLabel>
+                <FormLabel className="text-sm font-medium text-gray-700">Start Date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          'w-full pl-3 text-left font-normal',
+                          'w-full pl-3 text-left font-normal border-gray-300 hover:bg-gray-50',
                           !field.value && 'text-muted-foreground'
                         )}
                       >
@@ -393,14 +464,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             name="end_date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>End Date (Optional)</FormLabel>
+                <FormLabel className="text-sm font-medium text-gray-700">End Date (Optional)</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          'w-full pl-3 text-left font-normal',
+                          'w-full pl-3 text-left font-normal border-gray-300 hover:bg-gray-50',
                           !field.value && 'text-muted-foreground'
                         )}
                       >
@@ -437,167 +508,174 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+          {!isEditMode && (
+            <FormField
+              control={form.control}
+              name="allocation_percentage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-700">Default Allocation (%)</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="Enter allocation percentage"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="on_hold">On Hold</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="allocation_percentage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Default Allocation (%)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    placeholder="Enter allocation percentage"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      
-        {/* Team Members Section */}
-        <div className="space-y-4 mt-6 col-span-full">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Assigned Consultant</h3>
-            <div className="flex items-center space-x-2">
-              <Select
-                value={selectedConsultants[0]?.id || ''}
-                onValueChange={(value) => {
-                  handleAddConsultant(value);
-                }}
-              >
-                <SelectTrigger className="w-[240px]" data-testid="assign-consultant-select">
-                  <SelectValue placeholder="Select consultant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingEmployees && (
-                    <div className="px-2 py-1 text-xs text-muted-foreground">Loading employees...</div>
-                  )}
-                  {!isLoadingEmployees && employees && employees.length === 0 && (
-                    <div className="px-2 py-1 text-xs text-muted-foreground">No employees found for this company</div>
-                  )}
-                  {employees && employees.map((employee: any) => {
-                    const displayName = employee.name || employee.email;
-                    return (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {displayName}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {selectedConsultants.length > 0 && (
-            <div className="border rounded-md divide-y">
-              {selectedConsultants.map((consultant) => (
-                <div key={consultant.id} className="p-4 flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium">{consultant.name}</div>
-                    <div className="flex items-center space-x-4 mt-2">
-                      <div className="w-40">
-                        <Select
-                          value={consultant.role}
-                          onValueChange={(value) => {
-                            setSelectedConsultants(
-                              selectedConsultants.map(c => 
-                                c.id === consultant.id 
-                                  ? { ...c, role: value } 
-                                  : c
-                              )
-                            );
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="developer">Developer</SelectItem>
-                            <SelectItem value="designer">Designer</SelectItem>
-                            <SelectItem value="qa">QA Tester</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-32">
-                        <Input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={consultant.allocation_percentage}
-                          onChange={(e) => {
-                            const value = Math.min(100, Math.max(1, Number(e.target.value) || 1));
-                            setSelectedConsultants(
-                              selectedConsultants.map(c => 
-                                c.id === consultant.id 
-                                  ? { ...c, allocation_percentage: value } 
-                                  : c
-                              )
-                            );
-                          }}
-                          className="w-full"
-                        />
-                      </div>
-                      <span>%</span>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveConsultant(consultant.id)}
-                  >
-                    <X className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
         </div>
       
-        <div className="flex justify-end space-x-3 pt-4 border-t col-span-full">
+        {/* Team Members Section */}
+        <div className="space-y-6 mt-8 col-span-full">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-500 text-white p-2 rounded-lg">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Assigned Consultant</h3>
+                  <p className="text-sm text-gray-600">Add and manage project team members</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Select
+                  value={selectedConsultants[0]?.id || ''}
+                  onValueChange={(value) => {
+                    handleAddConsultant(value);
+                  }}
+                >
+                  <SelectTrigger className="w-[260px] border-blue-300 focus:border-blue-500 focus:ring-blue-500 bg-white" data-testid="assign-consultant-select">
+                    <SelectValue placeholder="Select consultant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingEmployees && (
+                      <div className="px-3 py-2 text-sm text-gray-500">Loading employees...</div>
+                    )}
+                    {!isLoadingEmployees && employees && employees.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-500">No employees found for this company</div>
+                    )}
+                    {employees && employees.map((employee: any) => {
+                      const displayName = employee.name || employee.email;
+                      return (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {displayName}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {selectedConsultants.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200 shadow-sm">
+                {selectedConsultants.map((consultant) => (
+                  <div key={consultant.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="bg-gray-100 text-gray-700 p-2 rounded-full">
+                          <UserIcon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{consultant.name}</div>
+                          <div className="text-sm text-gray-500">Consultant</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm font-medium text-gray-700">Role:</label>
+                          <Select
+                            value={consultant.role}
+                            onValueChange={(value) => {
+                              setSelectedConsultants(
+                                selectedConsultants.map(c => 
+                                  c.id === consultant.id 
+                                    ? { ...c, role: value } 
+                                    : c
+                                )
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="manager">Manager</SelectItem>
+                              <SelectItem value="developer">Developer</SelectItem>
+                              <SelectItem value="designer">Designer</SelectItem>
+                              <SelectItem value="qa">QA Tester</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm font-medium text-gray-700">Hours:</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={consultant.allocated_hours}
+                            onChange={(e) => {
+                              const value = Math.max(0, Number(e.target.value) || 0);
+                              setSelectedConsultants(
+                                selectedConsultants.map(c => 
+                                  c.id === consultant.id 
+                                    ? { ...c, allocated_hours: value } 
+                                    : c
+                                )
+                              );
+                            }}
+                            className="w-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                          <span className="text-sm text-gray-500">hrs</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="gradient"
+                      size="icon"
+                      onClick={() => handleRemoveConsultant(consultant.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      
+        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 col-span-full bg-gray-50 -mx-6 px-6 pb-6 rounded-b-lg">
           <Button
             type="button"
-            variant="outline"
+            variant="gradient"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            variant="gradient"
+            disabled={isSubmitting}
+            className="transition-colors shadow-sm hover:shadow-md"
+          >
             {isSubmitting ? (
               <>
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

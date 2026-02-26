@@ -130,8 +130,9 @@ export default function MarkProjectLeave() {
 
   // Helper functions for date range
   const calculateTotalDays = () => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates in local timezone to avoid UTC issues
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
 
     // Validate dates
     if (start > end) return 0;
@@ -141,10 +142,8 @@ export default function MarkProjectLeave() {
     const currentTime = start.getTime();
     const endTime = end.getTime();
 
-    // Add milliseconds for one day to ensure inclusive counting
-    const endTimeInclusive = endTime + (24 * 60 * 60 * 1000);
-
-    for (let time = currentTime; time <= endTimeInclusive; time += 24 * 60 * 60 * 1000) {
+    // Use <= to include end date without adding extra day
+    for (let time = currentTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
       const currentDate = new Date(time);
       const dayOfWeek = currentDate.getDay();
       // 0 = Sunday, 6 = Saturday
@@ -158,16 +157,15 @@ export default function MarkProjectLeave() {
 
   const generateDateRange = () => {
     const dates = [];
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates in local timezone to avoid UTC issues
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
 
     const currentTime = start.getTime();
     const endTime = end.getTime();
 
-    // Add milliseconds for one day to ensure inclusive range
-    const endTimeInclusive = endTime + (24 * 60 * 60 * 1000);
-
-    for (let time = currentTime; time <= endTimeInclusive; time += 24 * 60 * 60 * 1000) {
+    // Use <= to include end date without adding extra day
+    for (let time = currentTime; time <= endTime; time += 24 * 60 * 60 * 1000) {
       const currentDate = new Date(time);
       const dayOfWeek = currentDate.getDay();
       // Only include weekdays (Monday-Friday)
@@ -416,32 +414,33 @@ export default function MarkProjectLeave() {
     : 0;
 
   return (
-    <div className="container mx-auto p-4 space-y-4">
+    <div className="container mx-auto p-4 space-y-4 gradient-page min-h-screen">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Project Leave Entry</h1>
-        <Button variant="outline" onClick={() => { fetchAssignments(); fetchRecentLeaves(); fetchUsedHours(); }}>
+        <Button variant="gradient" onClick={() => { fetchAssignments(); fetchRecentLeaves(); fetchUsedHours(); }}>
           Refresh
         </Button>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Leave Entry</CardTitle>
+          <CardTitle className="text-section-heading">Leave Entry</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Consultant Selection */}
             <div className="space-y-2">
-              <div className="text-sm font-medium">Consultant</div>
+              <label className="form-label">Consultant</label>
               <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="gradient"
                     role="combobox"
                     aria-expanded={consultantOpen}
                     className="w-full justify-between"
                   >
                     {selectedConsultant ? selectedConsultant.consultant_name : 'Select consultant'}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    <ChevronsUpDown className="icon-inline shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -484,14 +483,15 @@ export default function MarkProjectLeave() {
               )}
             </div>
 
+            {/* Project Selection */}
             <div className="space-y-2">
-              <div className="text-sm font-medium">Project</div>
+              <label className="form-label">Project</label>
               <Select
                 value={selectedProjectId}
                 onValueChange={setSelectedProjectId}
                 disabled={!selectedConsultantId}
               >
-                <SelectTrigger>
+                <SelectTrigger className="form-input">
                   <SelectValue placeholder={selectedConsultantId ? 'Select project' : 'Select consultant first'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,32 +506,36 @@ export default function MarkProjectLeave() {
 
         
 
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Date Selection</div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-muted-foreground">Start Date</label>
-                  <Input 
-                    type="date" 
-                    value={startDate} 
-                    onChange={e => setStartDate(e.target.value)} 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">End Date</label>
-                  <Input 
-                    type="date" 
-                    value={endDate} 
-                    onChange={e => setEndDate(e.target.value)} 
-                  />
-                </div>
+          {/* Date Selection */}
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-sm font-semibold text-gray-900 mb-3">Date Selection</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Start Date</label>
+                <Input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={e => setStartDate(e.target.value)} 
+                  className="form-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">End Date</label>
+                <Input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={e => setEndDate(e.target.value)} 
+                  className="form-input"
+                />
               </div>
             </div>
+          </div>
 
+            {/* Leave Type */}
             <div className="space-y-2">
-              <div className="text-sm font-medium">Leave Type</div>
+              <label className="form-label">Leave Type</label>
               <Select value={leaveType} onValueChange={v => setLeaveType(v as LeaveType)}>
-                <SelectTrigger>
+                <SelectTrigger className="form-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -542,56 +546,70 @@ export default function MarkProjectLeave() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Hours</div>
-              <Input
-                type="number"
-                min="0.25"
-                max="8"
-                step="0.25"
-                value={leaveType === 'partial' ? partialHours : computedHours}
-                onChange={e => {
-                  const value = Number(e.target.value);
-                  if (value <= 8) {
-                    setPartialHours(value);
-                  }
-                }}
-                disabled={leaveType !== 'partial'}
-              />
-              <div className="text-xs text-muted-foreground">
-                {leaveType === 'partial' ? `Custom hours (max 8 hrs per day)` : `Computed: ${computedHours} hrs`}
-              </div>
-            </div>
-
-            {/* Leave Summary for Date Range */}
-            {startDate && endDate && (
-              <div className="md:col-span-2 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm font-medium text-blue-900">Leave Summary:</div>
-                <div className="text-xs text-blue-700">
-                  Business Days: {calculateTotalDays()} days (weekends excluded)
-                  <br />
-                  Total Hours: {(calculateTotalDays() * computedHours).toFixed(2)} hours
-                </div>
-              </div>
-            )}
-
-            <div className="md:col-span-2 space-y-2">
-              <div className="text-sm font-medium">Notes / Remarks (required)</div>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} />
+          {/* Hours Input */}
+          <div className="space-y-2">
+            <label className="form-label">Hours</label>
+            <Input
+              type="number"
+              min="0.25"
+              max="8"
+              step="0.25"
+              value={leaveType === 'partial' ? partialHours : computedHours}
+              onChange={e => {
+                const value = Number(e.target.value);
+                if (value <= 8) {
+                  setPartialHours(value);
+                }
+              }}
+              disabled={leaveType !== 'partial'}
+              className="form-input"
+            />
+            <div className="text-xs text-muted-foreground">
+              {leaveType === 'partial' ? `Custom hours (max 8 hrs per day)` : `Computed: ${computedHours} hrs`}
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleCreateLeave} disabled={isSaving}>
+          {/* Leave Summary */}
+          {startDate && endDate && (
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-sm font-semibold text-blue-900 mb-2">Leave Summary:</div>
+              <div className="text-sm text-blue-700 space-y-1">
+                <div>Business Days: {calculateTotalDays()} days (weekends excluded)</div>
+                <div>Total Hours: {(calculateTotalDays() * computedHours).toFixed(2)} hours</div>
+              </div>
+            </div>
+          )}
+
+          {/* Notes Section */}
+          <div className="space-y-2">
+            <label className="form-label">Notes / Remarks <span className="text-red-500">*</span></label>
+            <Textarea 
+              value={notes} 
+              onChange={e => setNotes(e.target.value)} 
+              rows={4} 
+              className="form-input"
+              placeholder="Enter leave details..."
+            />
+          </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end pt-4">
+            <Button 
+              onClick={handleCreateLeave} 
+              disabled={isSaving}
+              variant="gradient"
+              className="px-6"
+            >
               {isSaving ? 'Saving...' : 'Mark Leave'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Recent Leaves</CardTitle>
+          <CardTitle className="text-section-heading">Recent Leaves</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

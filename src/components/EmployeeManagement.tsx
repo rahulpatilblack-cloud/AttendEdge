@@ -1,58 +1,50 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AddEmployeeForm from './AddEmployeeForm';
 import EmployeeList from './EmployeeList';
-import { ArrowLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const EmployeeManagement = () => {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleAddSuccess = () => {
-    setShowAddForm(false);
+    setIsDialogOpen(false);
     setRefreshTrigger(prev => prev + 1); // Trigger refresh of employee list
   };
 
   const handleAddEmployee = () => {
-    setShowAddForm(true);
+    setIsDialogOpen(true);
   };
 
   const handleCancel = () => {
-    setShowAddForm(false);
+    setIsDialogOpen(false);
   };
 
-  if (showAddForm) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            onClick={handleCancel}
-            className="p-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-xl font-bold">Add New Employee</h1>
-        </div>
-
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle>Employee Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AddEmployeeForm onSuccess={handleAddSuccess} onCancel={handleCancel} />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <EmployeeList 
-      onAddEmployee={handleAddEmployee} 
-      refreshTrigger={refreshTrigger}
-    />
+    <>
+      <EmployeeList 
+        onAddEmployee={handleAddEmployee} 
+        refreshTrigger={refreshTrigger}
+        title="Consultants"
+        emptyTitle="No consultants found"
+        emptySubtitle="Get started by adding your first consultant"
+        addButtonLabel="Add Consultant"
+      />
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add New Consultant
+            </DialogTitle>
+          </DialogHeader>
+          <AddEmployeeForm onSuccess={handleAddSuccess} onCancel={handleCancel} />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

@@ -419,7 +419,7 @@ const LeaveManagement: React.FC = () => {
                   <Button onClick={handleSaveLeaveType} className="flex-1">
                     {editingLeaveType ? 'Update' : 'Create'} Leave Type
                   </Button>
-                  <Button variant="outline" onClick={() => setShowLeaveTypeModal(false)}>
+                  <Button variant="gradient" onClick={() => setShowLeaveTypeModal(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -436,7 +436,7 @@ const LeaveManagement: React.FC = () => {
           <p className="text-gray-600 mt-1">Manage and approve leave requests from your team</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+          <Button variant="gradient" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -444,7 +444,7 @@ const LeaveManagement: React.FC = () => {
           {/* Notifications Dialog */}
           <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="gradient">
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications
                 {pendingRequests.length > 0 && (
@@ -530,7 +530,7 @@ const LeaveManagement: React.FC = () => {
                   <Button onClick={sendTestNotification} className="flex-1">
                     Send Test Notification
                   </Button>
-                  <Button variant="outline" onClick={() => setShowNotifications(false)}>
+                  <Button variant="gradient" onClick={() => setShowNotifications(false)}>
                     Close
                   </Button>
                 </div>
@@ -541,7 +541,7 @@ const LeaveManagement: React.FC = () => {
           {/* Settings Dialog */}
           <Dialog open={showSettings} onOpenChange={setShowSettings}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="gradient">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
@@ -600,7 +600,7 @@ const LeaveManagement: React.FC = () => {
                   <Button onClick={() => setShowSettings(false)} className="flex-1">
                     Save Settings
                   </Button>
-                  <Button variant="outline" onClick={() => setShowSettings(false)}>
+                  <Button variant="gradient" onClick={() => setShowSettings(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -701,7 +701,7 @@ const LeaveManagement: React.FC = () => {
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Approve
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleReject(request.id)}>
+                        <Button size="sm" variant="gradient" onClick={() => handleReject(request.id)}>
                           <XCircle className="w-4 h-4 mr-1" />
                           Reject
                         </Button>
@@ -792,7 +792,7 @@ const LeaveManagement: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button variant="outline" onClick={() => setFilters({status: 'all', leaveType: 'all', search: ''})}>
+                  <Button variant="gradient" onClick={() => setFilters({status: 'all', leaveType: 'all', search: ''})}>
                     Clear Filters
                   </Button>
                 </div>
@@ -814,11 +814,11 @@ const LeaveManagement: React.FC = () => {
                       <CheckCircle className="w-4 h-4 mr-1" />
                       Approve All
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleBulkAction('reject')}>
+                    <Button size="sm" variant="gradient" onClick={() => handleBulkAction('reject')}>
                       <XCircle className="w-4 h-4 mr-1" />
                       Reject All
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setSelectedRequests([])}>
+                    <Button size="sm" variant="gradient" onClick={() => setSelectedRequests([])}>
                       <X className="w-4 h-4 mr-1" />
                       Clear
                     </Button>
@@ -896,12 +896,12 @@ const LeaveManagement: React.FC = () => {
                                 <Button size="sm" onClick={() => handleApprove(request.id)}>
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={() => handleReject(request.id)}>
+                                <Button size="sm" variant="gradient" onClick={() => handleReject(request.id)}>
                                   <XCircle className="w-4 h-4" />
                                 </Button>
                               </>
                             )}
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="gradient">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
@@ -1147,7 +1147,7 @@ const EmployeeLeaveView: React.FC = () => {
                   <Send className="w-4 h-4 mr-2" />
                   Submit Request
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowRequestForm(false)}>
+                <Button type="button" variant="gradient" onClick={() => setShowRequestForm(false)}>
                       Cancel
                     </Button>
                   </div>
@@ -1243,7 +1243,7 @@ const EmployeeLeaveView: React.FC = () => {
                         {request.status === 'pending' && (
                           <Button 
                             size="sm" 
-                            variant="outline"
+                            variant="gradient"
                             onClick={async () => {
                               await supabase.from('leave_requests').delete().eq('id', request.id);
                               toast({ title: 'Cancelled', description: 'Leave request cancelled.' });

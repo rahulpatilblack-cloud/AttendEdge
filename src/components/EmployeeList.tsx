@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Users, Mail, Building, Briefcase, UserPlus, Trash2, Edit, Download, ChevronLeft, ChevronRight, Search, Filter, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditEmployeeForm from './EditEmployeeForm';
@@ -60,6 +60,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 }) => {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
+  const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -348,9 +349,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           <h1 className="text-xl font-bold">Edit Employee</h1>
         </div>
 
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle>Employee Information</CardTitle>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-section-heading">Employee Information</CardTitle>
           </CardHeader>
           <CardContent>
             <EditEmployeeForm 
@@ -365,62 +366,58 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Actions Palette */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-base">Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={exportToCSV}
-              disabled={employees.length === 0}
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </Button>
-            {additionalActions}
-            {canAddEmployee && (
-              <Button 
-                onClick={onAddEmployee}
-                variant="gradient"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                {addLabel}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-3">
       {/* Consultants List Palette */}
-      <Card className="border-0 shadow-lg">
+      <Card className="glass-card">
         <CardHeader>
-          <div className="flex items-center space-x-3">
-            <Users className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold">{headingTitle}</h2>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center space-x-3">
+              <Users className="icon-card text-blue-600" />
+              <h2 className="text-page-title">{headingTitle}</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button 
+                variant="secondaryAlt" 
+                onClick={exportToCSV}
+                disabled={employees.length === 0}
+                className="interactive gap-2"
+              >
+                <Download className="icon-inline" />
+                Export CSV
+              </Button>
+              {additionalActions}
+              {canAddEmployee && (
+                <Button 
+                  onClick={onAddEmployee}
+                  variant="gradient"
+                  className="interactive"
+                >
+                  <UserPlus className="icon-inline mr-2" />
+                  {addLabel}
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
+
         <CardContent>
           {/* Filters Section */}
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="w-4 h-4 text-gray-600" />
-              <h3 className="text-sm font-medium text-gray-900">Filters</h3>
-            </div>
+          <div className="spacing-content space-y-3">
+            <div className="space-y-1">
+               <div className="text-sm text-muted-foreground">
+            Showing {paginatedEmployees.length} of {filteredEmployees.length} consultants
+              </div>
+             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Consultant Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Consultant</label>
+              <div className="space-y-1">
+                <label className="form-label">Consultant</label>
                 <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
+                    <Button variant="gradient" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
                       {selectedConsultant ? `${selectedConsultant.name} (${selectedConsultant.email})` : 'All Consultants'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown className="icon-inline shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -461,10 +458,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               </div>
 
               {/* Role Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Role</label>
+              <div className="space-y-1">
+                <label className="form-label">Role</label>
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input">
                     <SelectValue placeholder="All roles" />
                   </SelectTrigger>
                   <SelectContent>
@@ -479,10 +476,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               </div>
 
               {/* Department Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Department</label>
+              <div className="space-y-1">
+                <label className="form-label">Department</label>
                 <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input">
                     <SelectValue placeholder="All departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -497,10 +494,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               </div>
 
               {/* Status Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Status</label>
+              <div className="space-y-1">
+                <label className="form-label">Status</label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="form-input">
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -514,12 +511,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
             {/* Filter Summary */}
             {(searchTerm || roleFilter !== 'all' || departmentFilter !== 'all' || statusFilter !== 'all' || consultantId !== 'all') && (
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
                 <span className="text-sm text-blue-800">
                   {filteredEmployees.length} of {employees.length} consultants match filters
                 </span>
                 <Button
-                  variant="outline"
+                  variant="gradient"
                   size="sm"
                   onClick={() => {
                     setSearchTerm('');
@@ -536,10 +533,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           </div>
 
           {paginatedEmployees.length === 0 ? (
-        <div className="text-center py-6">
-          <Users className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyStateTitle}</h3>
-          <p className="text-gray-500 mb-3">{emptyStateSubtitle}</p>
+        <div className="text-center py-4">
+          <Users className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">{emptyStateTitle}</h3>
+          <p className="text-gray-500 mb-2">{emptyStateSubtitle}</p>
           {canAddEmployee && (
             <Button 
               onClick={onAddEmployee}
@@ -551,10 +548,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
           {paginatedEmployees.map((employee) => (
             <Card key={employee.id} className="border-0 shadow-lg card-hover">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-1">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{toTitleCase(employee.name)}</CardTitle>
                   <div className="flex items-center space-x-2">
@@ -566,7 +563,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           onClick={() => setEditingEmployee(employee)}
                         >
                           <Edit className="w-3 h-3" />
@@ -578,7 +575,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               disabled={removingId === employee.id}
                             >
                               <Trash2 className="w-3 h-3" />
@@ -607,7 +604,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-1">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Mail className="w-3 h-3" />
                   <span className="text-sm">{employee.email}</span>
@@ -636,7 +633,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-2">
           <div className="text-sm text-muted-foreground">
             Page {page} of {totalPages} • Showing {paginatedEmployees.length} of {filteredEmployees.length} consultants
           </div>
@@ -657,7 +654,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               </Select>
             </div>
             <Button
-              variant="outline"
+              variant="gradient"
               size="sm"
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
@@ -665,7 +662,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="gradient"
               size="sm"
               onClick={() => handlePageChange(page + 1)}
               disabled={page === totalPages}

@@ -177,13 +177,14 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       if (projectError) throw projectError;
 
-      // Then add consultants to the consultant_projects table if there are any
+      // Then add consultants to consultant_projects table if there are any
       if (members.length > 0) {
         const consultantAssignments = members.map((member: any) => ({
           consultant_id: member.consultant_id,
           project_id: projectResult.id,
           role: member.role || 'member',
-          allocation_percentage: member.allocation_percentage || 100,
+          allocation_percentage: 100, // Default to 100% as per requirement
+          allocated_hours: member.allocated_hours || 0,
           start_date: member.start_date || new Date().toISOString(),
           end_date: member.end_date || null,
           status: 'active',
@@ -247,7 +248,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
               consultant_id: consultantId,
               project_id: id,
               role: m?.role || 'member',
-              allocation_percentage: m?.allocation_percentage || 100,
+              allocation_percentage: 100, // Default to 100% as per requirement
+              allocated_hours: m?.allocated_hours || 0,
               start_date: m?.start_date || new Date().toISOString(),
               end_date: m?.end_date || null,
               status: 'active',
@@ -277,7 +279,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
               .from('consultant_projects')
               .update({
                 role: m.role,
-                allocation_percentage: m.allocation_percentage,
+                allocation_percentage: 100, // Default to 100% as per requirement
+                allocated_hours: m.allocated_hours,
                 start_date: m.start_date,
                 end_date: m.end_date,
                 status: m.status,

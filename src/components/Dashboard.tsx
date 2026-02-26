@@ -211,41 +211,41 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-stretch justify-start" style={{ background: '#fff' }}>
-      <div className={`max-w-7xl mx-auto mb-8 p-6 md:p-10 rounded-3xl shadow-xl space-y-6 ${themeClass}`} style={{ background: 'hsl(var(--background))', color: 'hsl(var(--foreground))' }}>
-        {/* Welcome Header as Card */}
-        <Card className={`${themeClass} card-theme rounded-3xl shadow-2xl p-6 mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-0`}>
+    <div className="min-h-screen w-full gradient-page">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Welcome Header with Glassmorphism */}
+        <Card className="glass-card">
           <CardContent className="p-0">
             {/* Welcome Header content START */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <div className="text-lg font-bold mb-1 text-blue-800">Welcome back, {user?.name}</div>
+                <div className="text-page-title mb-1">Welcome back, {user?.name}</div>
                 {currentCompany && (
-                  <div className="text-md font-medium mb-1 text-blue-600">{currentCompany.name}</div>
+                  <div className="text-body font-medium mb-1">{currentCompany.name}</div>
                 )}
                 <div className="text-4xl font-extrabold text-blue-700 mb-1 flex items-center gap-2">
-                  <Clock className="w-7 h-7 text-blue-400 bg-white rounded-full p-1 shadow mr-2" />
+                  <Clock className="icon-card text-blue-400 bg-white rounded-full p-1 shadow mr-2" />
                   {currentTime}
                 </div>
-                <div className="text-gray-500 mb-1 text-lg">{currentDate}</div>
+                <div className="text-muted mb-1 text-lg">{currentDate}</div>
                 <div className="text-purple-700 font-semibold text-md">{user?.position}</div>
               </div>
               <div className="flex flex-col md:flex-row gap-3 md:items-center">
                 <SessionStatusIndicator />
                 <Button 
-                  variant="outline" 
+                  variant="gradient" 
                   size="sm" 
                   onClick={refreshDashboardData}
                   disabled={attendanceLoading || leaveLoading}
-                  className="flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
+                  className="interactive flex items-center gap-2"
                 >
-                  <TrendingUp className="w-4 h-4" />
+                  <TrendingUp className="icon-inline" />
                   Refresh
                 </Button>
-                <Button variant="gradient" className="transition-transform hover:scale-105 shadow-lg" onClick={handleCheckInOut}>
+                <Button variant="gradient" className="interactive" onClick={handleCheckInOut}>
                   {todayAttendance?.check_in_time && !todayAttendance?.check_out_time ? 'Check Out' : 'Check In'}
                 </Button>
-                <Button variant="gradient" className="transition-transform hover:scale-105 shadow-lg" onClick={() => onNavigate?.('project-leave')}>
+                <Button variant="gradient" className="interactive" onClick={() => onNavigate?.('project-leave')}>
                   Request Project Leave
                 </Button>
                 <Button 

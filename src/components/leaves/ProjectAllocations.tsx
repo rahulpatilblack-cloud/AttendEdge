@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { ChevronLeft, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import { useCompany } from '@/contexts/CompanyContext';
-import { supabase } from '@/lib/supabase';
+import { useRealtimeUpdates } from '@/utils/realtimeUpdates';
 
 type AllocationRow = {
   consultant_project_id: string;
@@ -26,8 +27,11 @@ export default function ProjectAllocations() {
   const [rows, setRows] = useState<AllocationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const { toast } = useToast();
   const { currentCompany } = useCompany();
+  const { notifyAllocationUpdate, subscribe } = useRealtimeUpdates();
 
   const [consultantId, setConsultantId] = useState<string>('all');
   const [consultantOpen, setConsultantOpen] = useState(false);
@@ -86,6 +90,76 @@ export default function ProjectAllocations() {
       remaining: allocated - used,
     };
   }, [filteredRows]);
+
+  const toggleRowSelection = (rowId: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(rowId)) {
+      newSelected.delete(rowId);
+    } else {
+      newSelected.add(rowId);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const toggleAllRows = () => {
+    if (selectedRows.size === filteredRows.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(filteredRows.map(r => r.consultant_project_id)));
+    }
+  };
+
+  const bulkSave = async () => {
+    if (selectedRows.size === 0) {
+      toast({
+        title: 'No Selection',
+        description: 'Please select at least one row to perform bulk operations',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const updates = Array.from(selectedRows).map(id => {
+        const row = rows.find(r => r.consultant_project_id === id);
+        return {
+          id,
+          allocated_hours: row?.allocated_hours || 0,
+        };
+      });
+
+      const { error } = await supabase
+        .from('consultant_projects')
+        .upsert(updates);
+
+      if (error) throw error;
+
+      await fetchRows();
+      
+      // Notify other users of the update
+      selectedRows.forEach(id => {
+        const row = rows.find(r => r.consultant_project_id === id);
+        if (row) {
+          notifyAllocationUpdate(id, row.allocated_hours);
+        }
+      });
+      
+      setSelectedRows(new Set());
+      toast({
+        title: 'Success',
+        description: `Updated ${selectedRows.size} allocation(s) successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update allocations',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
 
   const fetchRows = async () => {
     try {
@@ -152,6 +226,33 @@ export default function ProjectAllocations() {
     setPage(1);
   }, [consultantId, projectSearch]);
 
+  // Real-time updates subscription
+  useEffect(() => {
+    const unsubscribe = subscribe('allocation_update', (event) => {
+      console.log('Real-time allocation update:', event);
+      // Refresh data when allocations are updated by other users
+      if (event.userId !== localStorage.getItem('user_id')) {
+        fetchRows();
+        toast({
+          title: 'Data Updated',
+          description: 'Project allocations have been updated by another user',
+          variant: 'default',
+        });
+      }
+    });
+
+    const unsubscribeRefresh = subscribe('data_refresh', (event) => {
+      if (event.data.resource === 'allocations') {
+        fetchRows();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeRefresh();
+    };
+  }, [subscribe]);
+
   const updateAllocatedHoursLocal = (index: number, value: string) => {
     const next = [...rows];
     next[index] = {
@@ -177,6 +278,9 @@ export default function ProjectAllocations() {
         .eq('id', row.consultant_project_id);
       if (error) throw error;
 
+      // Notify other users of the update
+      notifyAllocationUpdate(row.consultant_project_id, row.allocated_hours);
+
       toast({
         title: 'Success',
         description: 'Project leave budget saved successfully',
@@ -200,35 +304,54 @@ export default function ProjectAllocations() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-4">
+    <div className="container mx-auto p-4 space-y-4 gradient-page min-h-screen">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Project Leave Budgets (Yearly)</h1>
         <div className="space-x-2">
-          <Button variant="outline" onClick={fetchRows} disabled={isLoading || savingRowId !== null}>
+                <Button variant="gradient" onClick={fetchRows} disabled={isLoading || savingRowId !== null}>
             Refresh
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Leave Allocations</CardTitle>
+          <CardTitle className="text-section-heading">Leave Allocations</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="space-y-1">
+            <div className="flex justify-between items-center mb-4">
               <div className="text-sm text-muted-foreground">
-                Showing {filteredRows.length} of {totalFilteredRows.length} allocations
+                Showing {totalFilteredRows.length} of {rows.length} allocations
               </div>
+              {selectedRows.size > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={bulkSave}
+                    disabled={bulkActionLoading}
+                    variant="gradient"
+                    size="sm"
+                  >
+                    {bulkActionLoading ? 'Saving...' : `Save Selected (${selectedRows.size})`}
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedRows(new Set())}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
               <div className="md:col-span-2">
                 <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
+                    <Button variant="gradient" role="combobox" aria-expanded={consultantOpen} className="w-full justify-between">
                       {selectedConsultant ? `${selectedConsultant.name} (${selectedConsultant.email})` : 'All Consultants'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown className="icon-inline shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -276,7 +399,7 @@ export default function ProjectAllocations() {
               />
 
               <Select value={pageSize.toString()} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
-                <SelectTrigger>
+                <SelectTrigger className="form-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -288,7 +411,7 @@ export default function ProjectAllocations() {
               </Select>
 
               <div className="md:col-span-2 flex gap-2 items-center">
-                <Button variant="outline" onClick={clearFilters}>
+                <Button variant="gradient" onClick={clearFilters}>
                   Clear
                 </Button>
               </div>
@@ -299,6 +422,14 @@ export default function ProjectAllocations() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size === filteredRows.length && filteredRows.length > 0}
+                      onChange={toggleAllRows}
+                      className="rounded"
+                    />
+                  </TableHead>
                   <TableHead>Project</TableHead>
                   <TableHead>Consultant</TableHead>
                   <TableHead className="text-right">Allocated (hrs)</TableHead>
@@ -312,8 +443,17 @@ export default function ProjectAllocations() {
                   filteredRows.map((r, idx) => {
                     const remaining = (Number(r.allocated_hours) || 0) - (Number(r.allocated_leave_hours) || 0);
                     const isRowSaving = savingRowId === r.consultant_project_id;
+                    const isSelected = selectedRows.has(r.consultant_project_id);
                     return (
                       <TableRow key={r.consultant_project_id}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleRowSelection(r.consultant_project_id)}
+                            className="rounded"
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{r.project_name}</TableCell>
                         <TableCell>{r.consultant_name}</TableCell>
                         <TableCell className="text-right">
@@ -335,6 +475,7 @@ export default function ProjectAllocations() {
                           <Button
                             onClick={() => saveRow(r)}
                             disabled={isRowSaving}
+                            variant="gradient"
                             size="sm"
                           >
                             {isRowSaving ? 'Saving...' : 'Save'}
@@ -361,7 +502,7 @@ export default function ProjectAllocations() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
+                  variant="gradient"
                   size="sm"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -369,7 +510,7 @@ export default function ProjectAllocations() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="gradient"
                   size="sm"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}

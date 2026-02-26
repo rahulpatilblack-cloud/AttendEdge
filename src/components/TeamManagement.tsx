@@ -693,7 +693,7 @@ const TeamManagement: React.FC = () => {
                     <div className="space-y-4">
                       <p>Are you sure you want to delete this team? This action cannot be undone.<br/>All members will be unassigned from this team.</p>
                       <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={() => setDeletingTeamId(null)} disabled={actionLoading}>Cancel</Button>
+                        <Button variant="gradient" onClick={() => setDeletingTeamId(null)} disabled={actionLoading}>Cancel</Button>
                         <Button variant="destructive" onClick={() => deleteTeam(team.id)} disabled={actionLoading}>
                           {actionLoading ? 'Deleting...' : 'Delete'}
                         </Button>
@@ -709,7 +709,7 @@ const TeamManagement: React.FC = () => {
                     <div className="space-y-4">
                       <p>Are you sure you want to remove this member from the team?</p>
                       <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={() => setRemovingMemberId(null)} disabled={actionLoading}>Cancel</Button>
+                        <Button variant="gradient" onClick={() => setRemovingMemberId(null)} disabled={actionLoading}>Cancel</Button>
                         <Button variant="destructive" onClick={() => removeMemberFromTeam(removingMemberId!)} disabled={actionLoading}>
                           {actionLoading ? 'Removing...' : 'Remove'}
                         </Button>
