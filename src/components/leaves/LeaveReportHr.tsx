@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, FileSpreadsheet, X, Download, FileText } from 'lucide-react';
+import { Check, ChevronsUpDown, FileSpreadsheet, X, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -96,6 +96,8 @@ const LeaveReportHr: React.FC = () => {
   const [employeeId, setEmployeeId] = useState<string>('all');
   const [clientSearch, setClientSearch] = useState('');
   const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { dateFrom, dateTo } = useMemo(() => {
     const y = Number(year);
@@ -257,6 +259,22 @@ const LeaveReportHr: React.FC = () => {
     return { totalHours, employeesCount };
   }, [rows]);
 
+  // Apply pagination
+  const paginatedRows = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return rows.slice(startIndex, endIndex);
+  }, [rows, page, pageSize]);
+
+  const totalPages = Math.ceil(rows.length / pageSize);
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setEmployeeId('all');
+    setClientSearch('');
+    setPage(1);
+  };
+
   const exportToExcel = () => {
     logUserAction('EXPORT_EXCEL', 'leave-report-hr', {
       recordCount: rows.length,
@@ -365,12 +383,6 @@ const LeaveReportHr: React.FC = () => {
     doc.save(`leave_report_hr_${periodType}_${year}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const clearFilters = () => {
-    setStatusFilter('all');
-    setEmployeeId('all');
-    setClientSearch('');
-  };
-
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-2">
@@ -384,9 +396,9 @@ const LeaveReportHr: React.FC = () => {
         <div className="md:col-span-2">
           <Popover open={employeeOpen} onOpenChange={setEmployeeOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" aria-expanded={employeeOpen} className="w-full justify-between">
+              <Button variant="gradient" role="combobox" aria-expanded={employeeOpen} className="w-full justify-between">
                 {selectedEmployee ? `${selectedEmployee.name} (${selectedEmployee.email})` : 'All Consultants'}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <ChevronsUpDown className="icon-inline shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -400,6 +412,7 @@ const LeaveReportHr: React.FC = () => {
                       onSelect={() => {
                         setEmployeeId('all');
                         setEmployeeOpen(false);
+                        setPage(1);
                       }}
                     >
                       <Check className={employeeId === 'all' ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
@@ -412,6 +425,7 @@ const LeaveReportHr: React.FC = () => {
                         onSelect={() => {
                           setEmployeeId(e.id);
                           setEmployeeOpen(false);
+                          setPage(1);
                         }}
                       >
                         <Check className={employeeId === e.id ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
@@ -513,7 +527,7 @@ const LeaveReportHr: React.FC = () => {
           </Select>
         )}
 
-        <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v as any); setPage(1); }}>
           <SelectTrigger>
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -525,7 +539,19 @@ const LeaveReportHr: React.FC = () => {
           </SelectContent>
         </Select>
 
-        <Input placeholder="Search client" value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
+        <Input placeholder="Search client" value={clientSearch} onChange={e => { setClientSearch(e.target.value); setPage(1); }} />
+
+        <Select value={pageSize.toString()} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">5 per page</SelectItem>
+            <SelectItem value="10">10 per page</SelectItem>
+            <SelectItem value="20">20 per page</SelectItem>
+            <SelectItem value="50">50 per page</SelectItem>
+          </SelectContent>
+        </Select>
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportToExcel}>
@@ -563,6 +589,12 @@ const LeaveReportHr: React.FC = () => {
                   Loading...
                 </td>
               </tr>
+            ) : paginatedRows.length === 0 && rows.length > 0 ? (
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                  No records on this page
+                </td>
+              </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-muted-foreground">
@@ -570,7 +602,7 @@ const LeaveReportHr: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              rows.map(r => (
+              paginatedRows.map(r => (
                 <tr key={r.id} className="border-b hover:bg-muted/50">
                   <td className="px-4 py-3">
                     <div className="font-medium">{r.consultant_name}</div>
@@ -590,6 +622,32 @@ const LeaveReportHr: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="gradient"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="gradient"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
