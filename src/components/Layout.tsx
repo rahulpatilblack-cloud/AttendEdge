@@ -18,6 +18,7 @@ import {
   EyeOff,
   FileSpreadsheet, 
   FlaskConical,
+  LayoutDashboard,
   Lock, 
   LogOut, 
   Mail, 
@@ -87,6 +88,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       label: 'Dashboard',
       icon: Building2,
       roles: ['employee', 'reporting_manager', 'admin', 'super_admin']
+    },
+    {
+      id: 'new-dashboard',
+      label: 'New Dashboard',
+      icon: LayoutDashboard,
+      roles: ['reporting_manager', 'admin', 'super_admin']
     },
     {
       id: 'attendance',
