@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to AttendEdge</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #F8FAFC;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .welcome-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .logo-container {
+            margin-bottom: 16px;
+        }
+        
+        .logo-fallback {
+            display: none;
+            font-size: 2rem;
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .welcome-title {
+            color: #1976D2;
+            margin-top: 0;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+        
+        .message {
+            color: #424242;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            background: #F8FAFC;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 3px solid #1976D2;
+        }
+        
+        .cta-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(25,118,210,0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(25,118,210,0.4);
+        }
+        
+        .footer {
+            background: #F8FAFC;
+            padding: 24px 30px;
+            text-align: center;
+            border-top: 1px solid #EEEEEE;
+        }
+        
+        .footer-text {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 12px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: #1976D2;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 30px 15px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .cta-button {
+                padding: 14px 32px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Preheader -->
+    <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+        Welcome to AttendEdge! Your smart attendance and leave management platform is ready.
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="welcome-badge">
+                <span style="color:#fff;font-size:0.75rem;font-weight:600;">✨ WELCOME</span>
+            </div>
+            
+            <div class="logo-container">
+                <img src="https://attendedge-nytp1.netlify.app/attendedge-logo.png" 
+                     alt="AttendEdge Logo" 
+                     width="120" 
+                     style="max-width:100%;height:auto;"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <div class="logo-fallback">AE</div>
+            </div>
+            
+            <h1 style="color:#fff;font-size:2rem;margin:0;font-weight:600;">AttendEdge</h1>
+            <p style="color:#E3F2FD;margin:8px 0 0;font-size:1rem;">Smart Attendance & Leave Management</p>
+        </div>
+        
+        <div class="content">
+            <h2 class="welcome-title">Welcome to AttendEdge, {{ .Email }}!</h2>
+            
+            <p class="message">
+                Thank you for joining AttendEdge! We're excited to have you on board. 
+                Your account has been successfully created and you're ready to start managing your attendance and leave efficiently.
+            </p>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h3 style="color:#1976D2;margin:0 0 10px;font-size:1.1rem;">📊 Smart Attendance</h3>
+                    <p style="margin:0;color:#424242;font-size:0.95rem;">
+                        Track attendance with our intelligent system that adapts to your workflow.
+                    </p>
+                </div>
+                
+                <div class="feature">
+                    <h3 style="color:#1976D2;margin:0 0 10px;font-size:1.1rem;">📅 Leave Management</h3>
+                    <p style="margin:0;color:#424242;font-size:0.95rem;">
+                        Request, approve, and track leave with our comprehensive management system.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="cta-container">
+                <a href="{{ .SiteURL }}" class="cta-button">
+                    Get Started
+                </a>
+            </div>
+            
+            <p class="message" style="text-align:center;margin:32px 0 0;">
+                <strong>Next Steps:</strong><br>
+                1. Complete your profile<br>
+                2. Explore the dashboard<br>
+                3. Invite team members
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">
+                &copy; 2025 AttendEdge — Smart Attendance & Leave Management
+            </p>
+            <div class="footer-links">
+                <a href="{{ .SiteURL }}" class="footer-link">
+                    Dashboard
+                </a>
+                <a href="{{ .SiteURL }}/help" class="footer-link">
+                    Help Center
+                </a>
+                <a href="{{ .SiteURL }}/contact" class="footer-link">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

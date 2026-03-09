@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your AttendEdge Sign-in Link</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #F8FAFC;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .magic-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .logo-container {
+            margin-bottom: 16px;
+        }
+        
+        .logo-fallback {
+            display: none;
+            font-size: 2rem;
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .magic-title {
+            color: #1976D2;
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        
+        .message {
+            color: #424242;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .security-info {
+            background: #E3F2FD;
+            border-left: 4px solid #1976D2;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+        
+        .cta-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(25,118,210,0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(25,118,210,0.4);
+        }
+        
+        .alternative-link {
+            text-align: center;
+            margin: 24px 0;
+        }
+        
+        .link-text {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .link-box {
+            background: #F5F5F5;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        
+        .security-warning {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+        
+        .footer {
+            background: #F8FAFC;
+            padding: 24px 30px;
+            text-align: center;
+            border-top: 1px solid #EEEEEE;
+        }
+        
+        .footer-text {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0 0 12px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: #1976D2;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 30px 15px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .cta-button {
+                padding: 14px 32px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Preheader -->
+    <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+        Sign in to AttendEdge securely with this magic link. Link expires in 1 hour.
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="magic-badge">
+                <span style="color:#fff;font-size:0.75rem;font-weight:600;">🔮 MAGIC LINK</span>
+            </div>
+            
+            <div class="logo-container">
+                <img src="https://attendedge-nytp1.netlify.app/attendedge-logo.png" 
+                     alt="AttendEdge Logo" 
+                     width="120" 
+                     style="max-width:100%;height:auto;"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <div class="logo-fallback">AE</div>
+            </div>
+            
+            <h1 style="color:#fff;font-size:2rem;margin:0;font-weight:600;">AttendEdge</h1>
+            <p style="color:#E3F2FD;margin:8px 0 0;font-size:1rem;">Smart Attendance & Leave Management</p>
+        </div>
+        
+        <div class="content">
+            <h2 class="magic-title">Your Sign-in Link is Ready</h2>
+            
+            <p class="message">
+                Hello {{ .Email }},<br><br>
+                Click the button below to securely sign in to your AttendEdge account. 
+                This magic link will automatically log you in without needing a password.
+            </p>
+            
+            <div class="security-info">
+                <p style="margin:0;color:#1976D2;font-size:0.9rem;">
+                    <strong>🔒 Security Information:</strong><br>
+                    Request Time: {{ .Timestamp }}<br>
+                    Device: {{ .UserAgent }}<br>
+                    Location: {{ .IP }}
+                </p>
+            </div>
+            
+            <div class="cta-container">
+                <a href="{{ .SiteURL }}?token={{ .TokenHash }}&type=magic" class="cta-button">
+                    Sign In to AttendEdge
+                </a>
+            </div>
+            
+            <div class="alternative-link">
+                <p class="link-text">
+                    If the button doesn't work, copy and paste this link:<br>
+                    <span class="link-box">
+                        {{ .SiteURL }}?token={{ .TokenHash }}&type=magic
+                    </span>
+                </p>
+            </div>
+            
+            <div class="security-warning">
+                <p style="margin:0;color:#92400E;font-size:0.9rem;">
+                    <strong>⚠️ Important Security Notice:</strong><br>
+                    • This link expires in 1 hour for your security<br>
+                    • Only you can use this link<br>
+                    • If you didn't request this, please contact support immediately<br>
+                    • Never share this link with anyone
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">
+                &copy; 2025 AttendEdge — Smart Attendance & Leave Management
+            </p>
+            <div class="footer-links">
+                <a href="{{ .SiteURL }}" class="footer-link">
+                    Dashboard
+                </a>
+                <a href="{{ .SiteURL }}/help" class="footer-link">
+                    Help Center
+                </a>
+                <a href="{{ .SiteURL }}/contact" class="footer-link">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

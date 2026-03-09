@@ -36,6 +36,27 @@ import ResetPassword from './ResetPassword';
 import { SessionTimeoutModal } from './SessionTimeoutModal';
 import { SessionStatusIndicator } from './SessionStatusIndicator';
 import { useSession } from '@/contexts/SessionContext';
+// Import custom icons and micro-interactions
+import { 
+  AttendEaseLogo, 
+  AttendanceIcon, 
+  LeaveIcon, 
+  ProjectIcon, 
+  TeamIcon, 
+  AnalyticsIcon,
+  AttendEaseSpinner,
+  SuccessIcon
+} from './ui/AttendEaseIcons';
+import { 
+  InteractiveCard, 
+  AnimatedButton, 
+  AnimatedBadge, 
+  AnimatedCounter, 
+  SkeletonLoader,
+  AnimatedProgress,
+  StaggeredList,
+  PageTransition
+} from './ui/MicroInteractions';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -394,20 +415,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </Dialog>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Today's Status Card */}
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-amber-100 to-orange-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1">
+          <InteractiveCard onClick={() => onNavigate?.('attendance')}>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-blue-100 p-3 shadow-lg ring-4 ring-blue-50">
-                  <StatusIcon className="w-7 h-7 text-blue-600" />
+                <div className="rounded-full bg-gradient-to-br from-green-100 to-emerald-100 p-3 shadow-lg ring-4 ring-green-50">
+                  <AttendanceIcon size={28} checked={!!todayAttendance?.check_in_time} />
                 </div>
-                <div>
-                  <p className="text-md font-semibold text-gray-600" >Today's Status</p>
+                <div className="flex-1">
+                  <p className="text-md font-semibold text-gray-600">Today's Status</p>
                   <div className="flex items-center mt-2">
                     <span className="text-xl font-extrabold text-green-800 mr-2">{attendanceStatus.status}</span>
                     {todayAttendance?.check_in_time && (
-                      <Badge className="ml-1 bg-green-500 text-white">Checked In</Badge>
+                      <AnimatedBadge variant="success" className="ml-1">
+                        Checked In
+                      </AnimatedBadge>
                     )}
                   </div>
                   {todayAttendance?.check_in_time && (
@@ -418,16 +441,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </InteractiveCard>
 
           {/* Working Hours Card */}
-          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-emerald-100 to-red-70 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1">
+          <InteractiveCard onClick={() => onNavigate?.('attendance')}>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-emerald-100 p-3 shadow-lg ring-4 ring-emerald-50">
-                  <Clock className="w-7 h-7 text-emerald-600" />
+                <div className="rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 p-3 shadow-lg ring-4 ring-blue-50">
+                  <Clock className="w-7 h-7 text-blue-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-md font-semibold text-gray-600">Working Hours</p>
                   <div className="flex items-center mt-2">
                     <span className="text-xl font-extrabold text-blue-800 mr-2">
@@ -443,23 +466,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </InteractiveCard>
 
-        </div>
+        </StaggeredList>
       </div>
 
       {/* Directory Summary Pallets */}
       {(['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '')) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Project Directory Summary */}
-          <Card 
-            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-blue-100 to-indigo-100 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
-            onClick={() => onNavigate?.('manage-projects')}
-          >
+          <InteractiveCard onClick={() => onNavigate?.('manage-projects')}>
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="rounded-full bg-blue-200 p-3 shadow-lg ring-4 ring-blue-100">
-                  <Building2 className="w-7 h-7 text-blue-700" />
+                <div className="rounded-full bg-gradient-to-br from-blue-200 to-indigo-200 p-3 shadow-lg ring-4 ring-blue-100">
+                  <ProjectIcon size={28} active={true} />
                 </div>
                 <div className="flex-1">
                   <p className="text-lg font-semibold text-gray-800">Project Directory</p>
@@ -471,20 +491,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <div className="text-red-500 text-xs">Error loading projects</div>
               )}
               
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
-                  <p className="text-2xl font-bold text-blue-700">
-                    {projectsLoading ? '...' : (projectsSummary?.totalProjects || 0)}
-                  </p>
-                  <p className="text-xs text-gray-600">Total Projects</p>
+              {projectsLoading ? (
+                <SkeletonLoader lines={2} height="h-8" className="mb-4" />
+              ) : (
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                    <p className="text-2xl font-bold text-blue-700">
+                      <AnimatedCounter value={projectsSummary?.totalProjects || 0} />
+                    </p>
+                    <p className="text-xs text-gray-600">Total Projects</p>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                    <p className="text-2xl font-bold text-green-600">
+                      <AnimatedCounter value={projectsSummary?.activeProjects || 0} />
+                    </p>
+                    <p className="text-xs text-gray-600">Active</p>
+                  </div>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
-                  <p className="text-2xl font-bold text-green-600">
-                    {projectsLoading ? '...' : (projectsSummary?.activeProjects || 0)}
-                  </p>
-                  <p className="text-xs text-gray-600">Active</p>
-                </div>
-              </div>
+              )}
 
               {projectsSummary?.recentProjects && projectsSummary.recentProjects.length > 0 && (
                 <div className="border-t border-blue-200 pt-3">
@@ -493,29 +517,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     {projectsSummary.recentProjects.map((project, index) => (
                       <div key={project.id} className="flex items-center justify-between text-xs">
                         <span className="text-gray-600 truncate flex-1">{project.name}</span>
-                        <Badge 
+                        <AnimatedBadge 
                           variant={project.status === 'active' ? 'default' : 'secondary'}
-                          className="ml-2 text-xs"
+                          className="ml-2"
                         >
-                          {project.status}
-                        </Badge>
+                          {project.status || 'N/A'}
+                        </AnimatedBadge>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </CardContent>
-          </Card>
+          </InteractiveCard>
 
           {/* Consultant Directory Summary */}
-          <Card 
-            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-purple-100 to-pink-100 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
-            onClick={() => onNavigate?.('project-team-management')}
-          >
+          <InteractiveCard onClick={() => onNavigate?.('project-team-management')}>
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="rounded-full bg-purple-200 p-3 shadow-lg ring-4 ring-purple-100">
-                  <Users className="w-7 h-7 text-purple-700" />
+                <div className="rounded-full bg-gradient-to-br from-purple-200 to-pink-200 p-3 shadow-lg ring-4 ring-purple-100">
+                  <TeamIcon size={28} count={3} />
                 </div>
                 <div className="flex-1">
                   <p className="text-lg font-semibold text-gray-800">Consultant Directory</p>
@@ -527,20 +548,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <div className="text-red-500 text-xs">Error loading consultants</div>
               )}
               
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
-                  <p className="text-2xl font-bold text-purple-700">
-                    {consultantsLoading ? '...' : (consultantsSummary?.totalConsultants || 0)}
-                  </p>
-                  <p className="text-xs text-gray-600">Total Consultants</p>
+              {consultantsLoading ? (
+                <SkeletonLoader lines={2} height="h-8" className="mb-4" />
+              ) : (
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                    <p className="text-2xl font-bold text-purple-700">
+                      <AnimatedCounter value={consultantsSummary?.totalConsultants || 0} />
+                    </p>
+                    <p className="text-xs text-gray-600">Total Consultants</p>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                    <p className="text-2xl font-bold text-green-600">
+                      <AnimatedCounter value={consultantsSummary?.activeConsultants || 0} />
+                    </p>
+                    <p className="text-xs text-gray-600">Active</p>
+                  </div>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
-                  <p className="text-2xl font-bold text-green-600">
-                    {consultantsLoading ? '...' : (consultantsSummary?.activeConsultants || 0)}
-                  </p>
-                  <p className="text-xs text-gray-600">Active</p>
-                </div>
-              </div>
+              )}
 
               {consultantsSummary?.recentConsultants && consultantsSummary.recentConsultants.length > 0 && (
                 <div className="border-t border-purple-200 pt-3">
@@ -549,59 +574,86 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     {consultantsSummary.recentConsultants.map((consultant, index) => (
                       <div key={consultant.id} className="flex items-center justify-between text-xs">
                         <span className="text-gray-600 truncate flex-1">{consultant.name}</span>
-                        <div className="flex items-center gap-1 ml-2">
-                          <span className="text-gray-500 text-xs truncate max-w-20">{consultant.position || 'N/A'}</span>
-                          <Badge 
-                            variant={consultant.is_active ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {consultant.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
+                        <span className="text-gray-500 text-xs truncate max-w-20">{consultant.position || 'N/A'}</span>
+                        <AnimatedBadge 
+                          variant={consultant.is_active ? 'default' : 'secondary'}
+                          className="ml-2"
+                        >
+                          {consultant.is_active ? 'Active' : 'Inactive'}
+                        </AnimatedBadge>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </CardContent>
-          </Card>
-        </div>
+          </InteractiveCard>
+        </StaggeredList>
       )}
       
       {(['admin', 'super_admin'].includes(user?.role || '')) && (
-        <Card className="bg-gradient-to-br from-slate-50 to-gray-50 from-blue-100 to-white-50 border-0 shadow-lg mb-6 w-full rounded-2xl p-6 hover:shadow-xl transition-all duration-300">
+        <InteractiveCard className="bg-gradient-to-br from-slate-50 to-gray-50 border-0 shadow-lg mb-6 w-full rounded-2xl p-6">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
-              <Users className="w-5 h-5 mr-2 text-primary" />
-              Quick Admin Actions
+              <TeamIcon size={20} count={2} />
+              <span className="ml-2">Quick Admin Actions</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
-              <Button variant="gradient" onClick={() => onNavigate?.('manage-projects')}>
-                <Briefcase className="w-4 h-4 mr-2" />
-                Project Directory
-              </Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('project-team-management')}>
-                <Users className="w-4 h-4 mr-2" />
-                Consultant Directory
-              </Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('project-allocations')}>
+            <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
+              <AnimatedButton 
+                variant="primary" 
+                onClick={() => onNavigate?.('manage-projects')}
+                className="w-full"
+              >
+                <ProjectIcon size={16} />
+                <span className="ml-2">Project Directory</span>
+              </AnimatedButton>
+              <AnimatedButton 
+                variant="primary" 
+                onClick={() => onNavigate?.('project-team-management')}
+                className="w-full"
+              >
+                <TeamIcon size={16} />
+                <span className="ml-2">Consultant Directory</span>
+              </AnimatedButton>
+              <AnimatedButton 
+                variant="primary" 
+                onClick={() => onNavigate?.('project-allocations')}
+                className="w-full"
+              >
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Project Leave Allocations
-              </Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('mark-project-leave-hours')}>
+                <span className="ml-2">Project Leave Allocations</span>
+              </AnimatedButton>
+              <AnimatedButton 
+                variant="primary" 
+                onClick={() => onNavigate?.('mark-project-leave-hours')}
+                className="w-full"
+              >
                 <CalendarPlus className="w-4 h-4 mr-2" />
-                Project Leave Entry
-              </Button>
-              <Button variant="gradient" onClick={() => onNavigate?.('leave-report-hr')}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Leave Report (hr)
-              </Button>
-            </div>
+                <span className="ml-2">Project Leave Entry</span>
+              </AnimatedButton>
+              <AnimatedButton 
+                variant="primary" 
+                onClick={() => onNavigate?.('leave-report-hr')}
+                className="w-full"
+              >
+                <AnalyticsIcon size={16} />
+                <span className="ml-2">Leave Report (hr)</span>
+              </AnimatedButton>
+            </StaggeredList>
+          </CardContent>
+        </InteractiveCard>
+      )}
+      
+      {/* Welcome Header */}
+      <PageTransition>
+        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-lg mb-6 w-full rounded-2xl">
+          <CardContent className="p-6">
+            {/* Welcome Header content */}
           </CardContent>
         </Card>
-      )}
+      </PageTransition>
 
       {/* Session Timeout Modal */}
       <SessionTimeoutModal 
