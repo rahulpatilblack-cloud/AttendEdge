@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAttendance } from '@/hooks/useAttendance';
 import { useLeave } from '@/hooks/useLeave';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ import {
   Key,
   ShieldCheck,
   Briefcase,
+  Building2,
   CalendarCheck,
   FileText,
   FileSpreadsheet,
@@ -49,6 +51,130 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { theme } = useTheme();
   const themeClass = THEME_OPTIONS.find(t => t.key === theme)?.className || '';
   const { showTimeoutWarning, setShowTimeoutWarning } = useSession();
+  
+  // Fetch projects summary
+  const { data: projectsSummary, isLoading: projectsLoading, error: projectsError } = useQuery({
+    queryKey: ['projects-summary', currentCompany?.id],
+    queryFn: async () => {
+      if (!currentCompany?.id) return null;
+      
+      console.log('Fetching projects for company:', currentCompany.id);
+      
+      // Get total count - SAME as ProjectContext (no company_id filter)
+      const { count: totalCount, error: countError } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .order('created_at', { ascending: false });
+      
+      if (countError) {
+        console.error('Projects count error:', countError);
+        throw countError;
+      }
+      
+      // Get all projects for accurate active count - SAME as ProjectContext
+      const { data: allProjectsData, error: allProjectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (allProjectsError) {
+        console.error('All projects error:', allProjectsError);
+        throw allProjectsError;
+      }
+      
+      // Get recent projects (limit 5 for display) - SAME as ProjectContext
+      const { data: recentData, error: recentError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (recentError) {
+        console.error('Recent projects error:', recentError);
+        throw recentError;
+      }
+      
+      console.log('Projects total count:', totalCount);
+      console.log('All projects count:', allProjectsData?.length);
+      console.log('Recent projects data:', recentData);
+      
+      const totalProjects = totalCount || 0;
+      const activeProjects = allProjectsData?.filter(p => p.status === 'active').length || 0;
+      const recentProjects = recentData?.slice(0, 3) || [];
+      
+      return {
+        totalProjects,
+        activeProjects,
+        recentProjects
+      };
+    },
+    enabled: !!currentCompany?.id && ['admin', 'super_admin', 'reporting_manager'].includes(user?.role || ''),
+    refetchInterval: 30000
+  });
+
+  // Fetch consultants summary
+  const { data: consultantsSummary, isLoading: consultantsLoading, error: consultantsError } = useQuery({
+    queryKey: ['consultants-summary', currentCompany?.id],
+    queryFn: async () => {
+      if (!currentCompany?.id) return null;
+      
+      console.log('Fetching consultants for company:', currentCompany.id);
+      
+      // Get total count (all active consultants) - SAME as EmployeeList
+      const { count: totalCount, error: countError } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', currentCompany.id)
+        .eq('is_active', true);  // Removed role filter to match EmployeeList
+      
+      if (countError) {
+        console.error('Consultants count error:', countError);
+        throw countError;
+      }
+      
+      // Get ALL active consultants for accurate active count - SAME as EmployeeList
+      const { data: allActiveData, error: allActiveError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .eq('is_active', true);  // Removed role filter to match EmployeeList
+      
+      if (allActiveError) {
+        console.error('All active consultants error:', allActiveError);
+        throw allActiveError;
+      }
+      
+      // Get recent consultants (limit 5 for display) - SAME as EmployeeList
+      const { data: recentData, error: recentError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .eq('is_active', true)  // Removed role filter to match EmployeeList
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (recentError) {
+        console.error('Recent consultants error:', recentError);
+        throw recentError;
+      }
+      
+      console.log('Consultants total count:', totalCount);
+      console.log('All active consultants count:', allActiveData?.length);
+      console.log('Recent consultants data:', recentData);
+      
+      const totalConsultants = totalCount || 0;
+      const activeConsultants = allActiveData?.length || 0;  // Count from ALL active records
+      const recentConsultants = recentData?.slice(0, 3) || [];
+      
+      return {
+        totalConsultants,
+        activeConsultants,
+        recentConsultants
+      };
+    },
+    enabled: !!currentCompany?.id && ['admin', 'super_admin', 'reporting_manager'].includes(user?.role || ''),
+    refetchInterval: 30000
+  });
   
   // Debug log leave balances
   useEffect(() => {
@@ -252,10 +378,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* Reset Password Dialog */}
         <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px]" aria-describedby="reset-password-description">
             <DialogHeader>
               <DialogTitle>Reset Password</DialogTitle>
             </DialogHeader>
+            <div id="reset-password-description" className="sr-only">
+              Reset your password by entering your email address and following the instructions sent to your email
+            </div>
             <ResetPassword 
               email={user?.email || ''} 
               onCancel={handleResetPasswordClose}
@@ -318,6 +447,126 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         </div>
       </div>
+
+      {/* Directory Summary Pallets */}
+      {(['admin', 'super_admin', 'reporting_manager'].includes(user?.role || '')) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Project Directory Summary */}
+          <Card 
+            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-blue-100 to-indigo-100 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
+            onClick={() => onNavigate?.('manage-projects')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="rounded-full bg-blue-200 p-3 shadow-lg ring-4 ring-blue-100">
+                  <Building2 className="w-7 h-7 text-blue-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-semibold text-gray-800">Project Directory</p>
+                  <p className="text-sm text-gray-600">Manage all projects</p>
+                </div>
+              </div>
+              
+              {projectsError && (
+                <div className="text-red-500 text-xs">Error loading projects</div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-2xl font-bold text-blue-700">
+                    {projectsLoading ? '...' : (projectsSummary?.totalProjects || 0)}
+                  </p>
+                  <p className="text-xs text-gray-600">Total Projects</p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-2xl font-bold text-green-600">
+                    {projectsLoading ? '...' : (projectsSummary?.activeProjects || 0)}
+                  </p>
+                  <p className="text-xs text-gray-600">Active</p>
+                </div>
+              </div>
+
+              {projectsSummary?.recentProjects && projectsSummary.recentProjects.length > 0 && (
+                <div className="border-t border-blue-200 pt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Recent Projects:</p>
+                  <div className="space-y-1">
+                    {projectsSummary.recentProjects.map((project, index) => (
+                      <div key={project.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 truncate flex-1">{project.name}</span>
+                        <Badge 
+                          variant={project.status === 'active' ? 'default' : 'secondary'}
+                          className="ml-2 text-xs"
+                        >
+                          {project.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Consultant Directory Summary */}
+          <Card 
+            className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-purple-100 to-pink-100 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-1 cursor-pointer"
+            onClick={() => onNavigate?.('project-team-management')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="rounded-full bg-purple-200 p-3 shadow-lg ring-4 ring-purple-100">
+                  <Users className="w-7 h-7 text-purple-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-semibold text-gray-800">Consultant Directory</p>
+                  <p className="text-sm text-gray-600">Manage team members</p>
+                </div>
+              </div>
+              
+              {consultantsError && (
+                <div className="text-red-500 text-xs">Error loading consultants</div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                  <p className="text-2xl font-bold text-purple-700">
+                    {consultantsLoading ? '...' : (consultantsSummary?.totalConsultants || 0)}
+                  </p>
+                  <p className="text-xs text-gray-600">Total Consultants</p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                  <p className="text-2xl font-bold text-green-600">
+                    {consultantsLoading ? '...' : (consultantsSummary?.activeConsultants || 0)}
+                  </p>
+                  <p className="text-xs text-gray-600">Active</p>
+                </div>
+              </div>
+
+              {consultantsSummary?.recentConsultants && consultantsSummary.recentConsultants.length > 0 && (
+                <div className="border-t border-purple-200 pt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Recent Consultants:</p>
+                  <div className="space-y-1">
+                    {consultantsSummary.recentConsultants.map((consultant, index) => (
+                      <div key={consultant.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 truncate flex-1">{consultant.name}</span>
+                        <div className="flex items-center gap-1 ml-2">
+                          <span className="text-gray-500 text-xs truncate max-w-20">{consultant.position || 'N/A'}</span>
+                          <Badge 
+                            variant={consultant.is_active ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {consultant.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       {(['admin', 'super_admin'].includes(user?.role || '')) && (
         <Card className="bg-gradient-to-br from-slate-50 to-gray-50 from-blue-100 to-white-50 border-0 shadow-lg mb-6 w-full rounded-2xl p-6 hover:shadow-xl transition-all duration-300">

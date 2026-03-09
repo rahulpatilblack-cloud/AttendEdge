@@ -59,17 +59,19 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({ open, 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="session-timeout-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-orange-600">
             <AlertTriangle className="w-5 h-5" />
             Session Timeout Warning
           </DialogTitle>
         </DialogHeader>
-        
+        <div id="session-timeout-description" className="sr-only">
+          Your session is about to expire. You can extend your session or log out to continue working securely.
+        </div>
         <div className="space-y-4">
           <div className="flex items-center justify-center p-4 bg-orange-50 rounded-lg">
-            <Clock className="w-8 h-8 text-orange-500 mr-3" />
+            <Clock className="w-12 h-12 text-orange-500 animate-pulse" />
             <div className="text-center">
               <p className="text-sm text-gray-600">Your session will expire in</p>
               <p className="text-2xl font-bold text-orange-600">{formatTimeRemaining()}</p>
