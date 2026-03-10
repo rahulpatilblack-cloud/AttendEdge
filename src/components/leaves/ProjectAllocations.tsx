@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { ChevronLeft, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, ChevronsUpDown, Calendar } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRealtimeUpdates } from '@/utils/realtimeUpdates';
@@ -38,6 +38,19 @@ export default function ProjectAllocations() {
   const [projectSearch, setProjectSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  
+  // Add year filter state
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  
+  // Generate year options (current year and 3 years back)
+  const yearOptions = useMemo(() => {
+    const years = [];
+    for (let i = 0; i < 4; i++) {
+      years.push(currentYear - i);
+    }
+    return years;
+  }, [currentYear]);
 
   const { data: employees = [] } = useQuery<any[]>({
     queryKey: ['employees', currentCompany?.id],
@@ -181,9 +194,15 @@ export default function ProjectAllocations() {
 
       if (error) throw error;
 
+      // Fetch leaves data filtered by selected year
+      const startDate = `${selectedYear}-01-01`;
+      const endDate = `${selectedYear}-12-31`;
+      
       const { data: leavesData, error: leavesError } = await supabase
         .from('project_leaves')
-        .select('consultant_id, project_id, hours, status');
+        .select('consultant_id, project_id, hours, status, date')
+        .gte('date', startDate)
+        .lte('date', endDate);
 
       if (leavesError) throw leavesError;
 
@@ -224,7 +243,13 @@ export default function ProjectAllocations() {
 
   useEffect(() => {
     setPage(1);
-  }, [consultantId, projectSearch]);
+  }, [consultantId, projectSearch, selectedYear]);
+
+  // Refetch data when year changes
+  useEffect(() => {
+    fetchRows();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear]);
 
   // Real-time updates subscription
   useEffect(() => {
@@ -265,6 +290,7 @@ export default function ProjectAllocations() {
   const clearFilters = () => {
     setConsultantId('all');
     setProjectSearch('');
+    setSelectedYear(currentYear);
     setPage(1);
   };
 
@@ -306,7 +332,7 @@ export default function ProjectAllocations() {
   return (
     <div className="container mx-auto p-4 space-y-4 gradient-page min-h-screen">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Project Leave Budgets (Yearly)</h1>
+        <h1 className="text-2xl font-bold">Project Leave Budgets ({selectedYear})</h1>
         <div className="space-x-2">
                 <Button variant="gradient" onClick={fetchRows} disabled={isLoading || savingRowId !== null}>
             Refresh
@@ -345,7 +371,7 @@ export default function ProjectAllocations() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
               <div className="md:col-span-2">
                 <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                   <PopoverTrigger asChild>
@@ -390,6 +416,23 @@ export default function ProjectAllocations() {
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              {/* Year Filter */}
+              <div>
+                <Select value={selectedYear.toString()} onValueChange={(value) => { setSelectedYear(Number(value)); setPage(1); }}>
+                  <SelectTrigger className="form-input">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <Input
