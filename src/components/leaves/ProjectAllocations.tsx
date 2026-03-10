@@ -350,25 +350,6 @@ export default function ProjectAllocations() {
               <div className="text-sm text-muted-foreground">
                 Showing {totalFilteredRows.length} of {rows.length} allocations
               </div>
-              {selectedRows.size > 0 && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={bulkSave}
-                    disabled={bulkActionLoading}
-                    variant="gradient"
-                    size="sm"
-                  >
-                    {bulkActionLoading ? 'Saving...' : `Save Selected (${selectedRows.size})`}
-                  </Button>
-                  <Button
-                    onClick={() => setSelectedRows(new Set())}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
@@ -458,6 +439,38 @@ export default function ProjectAllocations() {
                   Clear
                 </Button>
               </div>
+            </div>
+
+            {/* Fixed Height Bulk Actions Row - Always Present Space */}
+            <div className="h-20 flex items-center">
+              {selectedRows.size > 0 && (
+                <div className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="font-semibold text-blue-800">
+                      {selectedRows.size} {selectedRows.size === 1 ? 'allocation' : 'allocations'} selected
+                    </span>
+                  </div>
+                  <div className="flex gap-2 ml-auto">
+                    <Button
+                      onClick={bulkSave}
+                      disabled={bulkActionLoading}
+                      variant="gradient"
+                      size="sm"
+                      className="shadow-lg"
+                    >
+                      {bulkActionLoading ? 'Saving...' : `Save Selected (${selectedRows.size})`}
+                    </Button>
+                    <Button
+                      onClick={() => setSelectedRows(new Set())}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -564,13 +577,7 @@ export default function ProjectAllocations() {
             </div>
           )}
 
-          <div className="mt-4 flex justify-end text-sm text-muted-foreground">
-            <div className="text-right">
-              <div>Total Allocated: {totals.allocated}</div>
-              <div>Total Used: {totals.used}</div>
-              <div>Total Remaining: {totals.remaining}</div>
-            </div>
-          </div>
+          
         </CardContent>
       </Card>
     </div>
