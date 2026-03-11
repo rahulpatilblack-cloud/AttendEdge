@@ -415,7 +415,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </Dialog>
 
         {/* Quick Stats */}
-        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Today's Status Card */}
           <InteractiveCard onClick={() => onNavigate?.('attendance')}>
             <CardContent className="p-6">
@@ -424,20 +424,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <AttendanceIcon size={28} checked={!!todayAttendance?.check_in_time} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-md font-semibold text-gray-600">Today's Status</p>
+                  <p className="text-lg font-semibold text-gray-800">Today's Status</p>
+                  <p className="text-sm text-gray-600">Current attendance status</p>
                   <div className="flex items-center mt-2">
                     <span className="text-xl font-extrabold text-green-800 mr-2">{attendanceStatus.status}</span>
+                    
                     {todayAttendance?.check_in_time && (
-                      <AnimatedBadge variant="success" className="ml-1">
-                        Checked In
-                      </AnimatedBadge>
-                    )}
-                  </div>
-                  {todayAttendance?.check_in_time && (
                     <p className="text-sm text-gray-500 mt-1">
                       at {new Date(todayAttendance.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
+                  </div>
+                  
                 </div>
               </div>
             </CardContent>
@@ -451,7 +449,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <Clock className="w-7 h-7 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-md font-semibold text-gray-600">Working Hours</p>
+                  <p className="text-lg font-semibold text-gray-800">Working Hours</p>
+                  <p className="text-sm text-gray-600">Today's work time</p>
                   <div className="flex items-center mt-2">
                     <span className="text-xl font-extrabold text-blue-800 mr-2">
                       {todayAttendance?.check_in_time && todayAttendance?.check_out_time 
@@ -462,7 +461,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       }
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Today</p>
+                  
                 </div>
               </div>
             </CardContent>
@@ -512,10 +511,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
               {projectsSummary?.recentProjects && projectsSummary.recentProjects.length > 0 && (
                 <div className="border-t border-blue-200 pt-3">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Recent Projects:</p>
-                  <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Recent Projects:</p>
+                  <div className="grid grid-cols-2 gap-2">
                     {projectsSummary.recentProjects.map((project, index) => (
-                      <div key={project.id} className="flex items-center justify-between text-xs">
+                      <div key={project.id} className="flex items-center justify-between text-xs p-2 bg-white rounded-lg border border-blue-200">
                         <span className="text-gray-600 truncate flex-1">{project.name}</span>
                         <AnimatedBadge 
                           variant={project.status === 'active' ? 'default' : 'secondary'}
@@ -569,12 +568,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
               {consultantsSummary?.recentConsultants && consultantsSummary.recentConsultants.length > 0 && (
                 <div className="border-t border-purple-200 pt-3">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Recent Consultants:</p>
-                  <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Recent Consultants:</p>
+                  <div className="grid grid-cols-2 gap-2">
                     {consultantsSummary.recentConsultants.map((consultant, index) => (
-                      <div key={consultant.id} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 truncate flex-1">{consultant.name}</span>
-                        <span className="text-gray-500 text-xs truncate max-w-20">{consultant.position || 'N/A'}</span>
+                      <div key={consultant.id} className="flex items-center justify-between text-xs p-2 bg-white rounded-lg border border-purple-200">
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-gray-600 truncate">{consultant.name}</span>
+                          
+                        </div>
                         <AnimatedBadge 
                           variant={consultant.is_active ? 'default' : 'secondary'}
                           className="ml-2"
@@ -606,7 +607,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate?.('manage-projects')}
                 className="w-full"
               >
-                <ProjectIcon size={16} />
+                <Building2 className="w-4 h-4" />
                 <span className="ml-2">Project Directory</span>
               </AnimatedButton>
               <AnimatedButton 
@@ -614,7 +615,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate?.('project-team-management')}
                 className="w-full"
               >
-                <TeamIcon size={16} />
+                <Users className="w-4 h-4" />
                 <span className="ml-2">Consultant Directory</span>
               </AnimatedButton>
               <AnimatedButton 
@@ -622,7 +623,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate?.('project-allocations')}
                 className="w-full"
               >
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                <FileSpreadsheet className="w-4 h-4" />
                 <span className="ml-2">Project Leave Allocations</span>
               </AnimatedButton>
               <AnimatedButton 
@@ -630,7 +631,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate?.('mark-project-leave-hours')}
                 className="w-full"
               >
-                <CalendarPlus className="w-4 h-4 mr-2" />
+                <CalendarPlus className="w-4 h-4" />
                 <span className="ml-2">Project Leave Entry</span>
               </AnimatedButton>
               <AnimatedButton 
@@ -638,7 +639,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate?.('leave-report-hr')}
                 className="w-full"
               >
-                <AnalyticsIcon size={16} />
+                <BarChart3 className="w-4 h-4" />
                 <span className="ml-2">Leave Report (hr)</span>
               </AnimatedButton>
             </StaggeredList>

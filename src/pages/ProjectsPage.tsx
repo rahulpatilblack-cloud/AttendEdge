@@ -46,6 +46,7 @@ const ProjectsPage = () => {
   const [clientSearch, setClientSearch] = useState('');
   const [consultantId, setConsultantId] = useState<string>('all');
   const [consultantOpen, setConsultantOpen] = useState(false);
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -131,6 +132,20 @@ const ProjectsPage = () => {
     return employees.find(e => e.id === consultantId) || null;
   }, [consultantId, employees]);
 
+  // Generate available years from project data
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    projects.forEach(project => {
+      if (project.start_date) {
+        const start = parseLocalDate(project.start_date);
+        if (start) {
+          years.add(start.getFullYear());
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a); // Sort descending (most recent first)
+  }, [projects]);
+
   const filteredProjects = useMemo(() => {
     let result = projects.filter(p => {
       const matchesStatus = statusFilter === 'all' ? true : p.status === statusFilter;
@@ -152,14 +167,21 @@ const ProjectsPage = () => {
         matchesConsultant = (p as any).members?.some((m: any) => m.consultant_id === consultantId || m.user_id === consultantId);
       }
 
-      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant;
+      // Filter by year if selected
+      let matchesYear = true;
+      if (yearFilter !== 'all') {
+        const start = parseLocalDate(p.start_date);
+        matchesYear = start ? start.getFullYear() === parseInt(yearFilter) : false;
+      }
+
+      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant && matchesYear;
     });
 
     // Apply pagination
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return result.slice(startIndex, endIndex);
-  }, [projects, statusFilter, projectSearch, clientSearch, consultantId, page, pageSize]);
+  }, [projects, statusFilter, projectSearch, clientSearch, consultantId, yearFilter, page, pageSize]);
 
   const totalFilteredProjects = useMemo(() => {
     return projects.filter(p => {
@@ -182,9 +204,16 @@ const ProjectsPage = () => {
         matchesConsultant = (p as any).members?.some((m: any) => m.consultant_id === consultantId || m.user_id === consultantId);
       }
 
-      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant;
+      // Filter by year if selected
+      let matchesYear = true;
+      if (yearFilter !== 'all') {
+        const start = parseLocalDate(p.start_date);
+        matchesYear = start ? start.getFullYear() === parseInt(yearFilter) : false;
+      }
+
+      return matchesStatus && matchesProjectSearch && matchesClientSearch && matchesConsultant && matchesYear;
     });
-  }, [projects, statusFilter, projectSearch, clientSearch, consultantId]);
+  }, [projects, statusFilter, projectSearch, clientSearch, consultantId, yearFilter]);
 
   const totalPages = Math.ceil(totalFilteredProjects.length / pageSize);
 
@@ -193,6 +222,7 @@ const ProjectsPage = () => {
     setProjectSearch('');
     setClientSearch('');
     setConsultantId('all');
+    setYearFilter('all');
     setPage(1);
   };
 
@@ -280,7 +310,7 @@ const ProjectsPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-8 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-9 gap-3">
                 <div className="md:col-span-2">
                   <Popover open={consultantOpen} onOpenChange={setConsultantOpen}>
                     <PopoverTrigger asChild>
@@ -337,6 +367,20 @@ const ProjectsPage = () => {
                     <SelectItem value="on_hold">On Hold</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={yearFilter} onValueChange={v => { setYearFilter(v); setPage(1); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {availableYears.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
